@@ -1,0 +1,14 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+training_data/
+*.egg-info
+*.mov
+
+# Virtual environments
+.venv
+
+pose_landmarker.task
