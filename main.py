@@ -18,8 +18,7 @@ if mp.__version__ >= '0.10.30':
     from mediapipe.tasks.python.vision.pose_landmarker import PoseLandmark
     LM = PoseLandmark
 else:
-    from mediapipe.framework.formats import landmark_pb2 # type: ignore
-    LM = landmark_pb2.PoseLandmark
+    LM = mp.solutions.pose.PoseLandmark
 
 from mediapipe.tasks.python.vision.core.vision_task_running_mode import VisionTaskRunningMode
 
