@@ -43,11 +43,16 @@ class LevelSelectScene(BaseScene):
         self.menu.update(dt)
 
     def draw(self):
+        sw, sh = self.screen.get_size()
         self.screen.fill(theme.BACKGROUND)
         self.particles.draw(self.screen)
+
+        # Scale persona position based on height
+        self.persona.y = sh - 270
         self.persona.draw(self.screen)
 
         title = theme.FONTS['title'].render("MISSION SELECT", True, theme.ACCENT)
+        # Position title relative to menu target_x (500)
         self.screen.blit(title, (500, 80))
 
         self.menu.draw(self.screen)

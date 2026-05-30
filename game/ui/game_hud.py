@@ -45,11 +45,13 @@ class GameHUD:
             pygame.draw.polygon(surface, color, points)
 
     def draw(self, state, rep, ex):
-        # 1. Exercise Name (Top Center Slanted Block - out of the way of webcam)
+        sw, sh = self.screen.get_size()
+
+        # 1. Exercise Name (Top Center Slanted Block)
         ex_name = ex.name.replace('.npz', '').replace('_', ' ').upper()
         name_txt = theme.FONTS['menu'].render(ex_name, True, theme.WHITE)
         name_w = name_txt.get_width() + 60
-        bg_rect = pygame.Rect(theme.WIDTH // 2 - name_w // 2, 10, name_w, 50)
+        bg_rect = pygame.Rect(sw // 2 - name_w // 2, 10, name_w, 50)
         self.draw_parallelogram(self.screen, bg_rect, theme.ACCENT_LOW, 220, 15)
         self.screen.blit(name_txt, (bg_rect.x + 35, bg_rect.y + 5))
 
@@ -58,7 +60,7 @@ class GameHUD:
         target_val = f"{state.target_reps}"
 
         badge_w, badge_h = 180, 120
-        badge_x, badge_y = theme.WIDTH - badge_w - 20, theme.HEIGHT - badge_h - 20
+        badge_x, badge_y = sw - badge_w - 20, sh - badge_h - 20
 
         badge_rect = pygame.Rect(badge_x, badge_y, badge_w, badge_h)
         self.draw_parallelogram(self.screen, badge_rect, (20, 25, 35), 255, -15)
@@ -74,7 +76,7 @@ class GameHUD:
         self.screen.blit(slash_txt, (badge_x + 50, badge_y + 80))
 
         # 3. Progress Bar (Vertical Segments next to minigame)
-        bar_x, bar_y = 650, 150
+        bar_x, bar_y = sw // 2 + 10, sh // 2 - 200
         bar_w, bar_h = 12, 400
 
         # Background segments
@@ -92,7 +94,7 @@ class GameHUD:
         # 4. Score Badge (Top Right - More angled)
         score_val = f"SCORE {state.score:05d}"
         score_txt = theme.FONTS['body'].render(score_val, True, theme.BLACK)
-        score_bg = pygame.Rect(theme.WIDTH - 260, 20, 240, 45)
+        score_bg = pygame.Rect(sw - 260, 20, 240, 45)
         self.draw_parallelogram(self.screen, score_bg, theme.ACCENT, 255, -20)
         self.screen.blit(score_txt, (score_bg.x + 40, score_bg.y + 10))
 

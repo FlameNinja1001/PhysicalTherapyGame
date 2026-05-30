@@ -28,7 +28,8 @@ class RenderSystem(esper.Processor):
 
     def get_demo_path(self, ex_name):
         # Assumes videos are in training_data/videos/ and named similarly to .npz
-        video_name = ex_name.replace('.npz', '.mp4')
+        # Using .mov as found in the directory
+        video_name = os.path.basename(ex_name).replace('.npz', '.mov')
         path = os.path.join('training_data', 'videos', video_name)
         if os.path.exists(path):
             return path
@@ -36,7 +37,11 @@ class RenderSystem(esper.Processor):
 
     def process(self):
         dt = 1/60.0 # Approximate, could pass actual dt
-        
+
+        # Update logical minigame dimensions if screen resized
+        sw, sh = self.screen.get_size()
+        self.minigame.rect = pygame.Rect(sw // 2, 0, sw // 2, sh)
+
         for ent, (cam, pose, rep, state, ex, angles) in esper.get_components(
                 CameraFrameComponent, PoseLandmarksComponent,
                 RepStateComponent, GameStateComponent, ExerciseComponent, JointAnglesComponent):
@@ -45,13 +50,14 @@ class RenderSystem(esper.Processor):
                 continue
 
             # Reset last_rep_count if exercise changes
-            if ex.template_path != self.current_demo_path.replace('.mp4', '.npz'):
+            if os.path.basename(ex.template_path) != os.path.basename(self.current_demo_path).replace('.mov', '.npz'):
                 self.last_rep_count = 0
+                self.minigame.reset_reps()
 
             # 1. Update Sub-systems
             self.hud.update(dt)
             self.minigame.update(dt, rep.progress, rep.rep_count)
-            
+
             # Check for new rep feedback
             if rep.rep_count > self.last_rep_count:
                 self.hud.set_feedback("NICE!", theme.ACCENT)
@@ -77,8 +83,8 @@ class RenderSystem(esper.Processor):
             frame_rgb = cv2.cvtColor(display_frame, cv2.COLOR_BGR2RGB)
             cam_surface = pygame.image.frombuffer(frame_rgb.tobytes(), (w, h), "RGB")
 
-            # Center Crop and Scale to fit left half (640x720)
-            target_w, target_h = 640, 720
+            # Center Crop and Scale to fit left half
+            target_w, target_h = sw // 2, sh
 
             # Calculate source rect for cropping
             src_aspect = w / h

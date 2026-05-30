@@ -72,6 +72,9 @@ class PlatformerMinigame:
         # Smoothly follow the player's vertical progress
         self.scroll_y += (self.target_scroll_y - self.scroll_y) * 3 * dt
 
+    def reset_reps(self):
+        self.last_rep_count = 0
+
     def draw(self):
         # Draw background
         bg_color = (15, 20, 30)

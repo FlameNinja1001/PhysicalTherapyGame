@@ -164,8 +164,10 @@ class GameScene(BaseScene):
 
     def on_exit(self):
         # Cleanup
-        self.mp_thread.stop()
-        self.mp_thread.join()
-        self.cap.release()
+        if hasattr(self, 'mp_thread'):
+            self.mp_thread.stop()
+            self.mp_thread.join()
+        if hasattr(self, 'cap'):
+            self.cap.release()
         esper.clear_database()
         return super().on_exit()

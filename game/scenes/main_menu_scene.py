@@ -37,11 +37,16 @@ class MainMenuScene(BaseScene):
         self.menu.update(dt)
 
     def draw(self):
+        sw, sh = self.screen.get_size()
         self.screen.fill(theme.BACKGROUND)
         self.particles.draw(self.screen)
+
+        # Scale persona y based on current height
+        self.persona.y = sh - 270
         self.persona.draw(self.screen)
 
-        # Title with subtle glow
+        # Title with subtle glow - center it based on current width
+        self.title_rect.centerx = sw // 2
         glow_rect = self.title_rect.inflate(10, 10)
         pygame.draw.rect(self.screen, theme.ACCENT_LOW, glow_rect, border_radius=15)
         self.screen.blit(self.title_surf, self.title_rect)
