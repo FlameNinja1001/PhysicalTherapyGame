@@ -11,8 +11,16 @@ import mediapipe as mp
 from mediapipe.tasks.python.core.base_options import BaseOptions
 from mediapipe.tasks.python.vision.pose_landmarker import (
     PoseLandmarker, PoseLandmarkerOptions,
-    PoseLandmarksConnections, PoseLandmark
+    PoseLandmarksConnections
 )
+
+if mp.__version__ >= '0.10.30':
+    from mediapipe.tasks.python.vision.pose_landmarker import PoseLandmark
+    LM = PoseLandmark
+else:
+    from mediapipe.framework.formats import landmark_pb2 # type: ignore
+    LM = landmark_pb2.PoseLandmark
+
 from mediapipe.tasks.python.vision.core.vision_task_running_mode import VisionTaskRunningMode
 
 # ── Colours (BGR) ────────────────────────────────────────
@@ -235,8 +243,6 @@ def main():
     start_ms = int(time.time() * 1000)
 
     with PoseLandmarker.create_from_options(options) as landmarker:
-        LM = PoseLandmark
-
         while True:
             ok, frame = cap.read()
             if not ok: break
