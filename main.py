@@ -113,7 +113,7 @@ def draw_ui_overlay(frame, templates, active_idx, rep_detector):
     y += 20
     cv2.putText(frame, "[Q] Quit", (10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, RED, 1, cv2.LINE_AA)
 
-# ── New Keyframe State Machine ─────────────────────────────
+# ── Keyframe State Machine ─────────────────────────────
 class KeyframeRepCounter:
     def __init__(self):
         self.template_path = None
