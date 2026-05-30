@@ -2,7 +2,7 @@ import pygame
 import json
 import os
 from game.scenes.base_scene import BaseScene
-from game.ui import theme, particles, persona, level_card_menu
+from game.ui import theme, particles, persona, level_card_menu, paint_effects
 
 class LevelSelectScene(BaseScene):
     def __init__(self, screen):
@@ -17,7 +17,18 @@ class LevelSelectScene(BaseScene):
         with open(path, 'r') as f:
             data = json.load(f)
 
-        self.menu = level_card_menu.LevelCardMenu(data['groups'], 500, 180)
+        self.menu = level_card_menu.LevelCardMenu(data['groups'], 550, 200)
+
+        # Create background splatters for dramatic effect
+        self.bg_splatters = [
+            paint_effects.PaintSplatter(1100, 150, theme.SPLATTER_RED, size=90),
+            paint_effects.PaintSplatter(200, 300, theme.SPLATTER_CYAN, size=60),
+            paint_effects.PaintSplatter(900, 500, theme.SPLATTER_RED, size=50),
+        ]
+
+        # Create grunge texture
+        sw, sh = screen.get_size()
+        self.grunge = paint_effects.GrungeTexture(sw, sh, theme.GRAY, alpha=25)
 
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
@@ -45,14 +56,42 @@ class LevelSelectScene(BaseScene):
     def draw(self):
         sw, sh = self.screen.get_size()
         self.screen.fill(theme.BACKGROUND)
+
+        # Draw grunge texture first
+        self.grunge.draw(self.screen)
+
+        # Draw background splatters for dramatic effect
+        for splatter in self.bg_splatters:
+            splatter.draw(self.screen)
+
         self.particles.draw(self.screen)
 
         # Scale persona position based on height
         self.persona.y = sh - 270
         self.persona.draw(self.screen)
 
-        title = theme.FONTS['title'].render("MISSION SELECT", True, theme.ACCENT)
-        # Position title relative to menu target_x (500)
-        self.screen.blit(title, (500, 80))
+        # Draw dramatic title (Persona style)
+        title_font = pygame.font.SysFont("Arial", 110, bold=True)
+        paint_effects.draw_slanted_text(
+            self.screen, title_font, "MISSION",
+            theme.ACCENT, (700, 100), angle=-6
+        )
+
+        # Subtitle
+        subtitle_font = pygame.font.SysFont("Arial", 80, bold=True)
+        paint_effects.draw_slanted_text(
+            self.screen, subtitle_font, "SELECT",
+            theme.WHITE, (850, 140), angle=-8
+        )
 
         self.menu.draw(self.screen)
+
+        # Draw navigation prompts
+        prompt_font = theme.FONTS['small']
+        prompt_text = "↑↓ Navigate  ⏎ Confirm  Esc Back"
+        prompt_surf = prompt_font.render(prompt_text, True, theme.GRAY)
+        prompt_rect = prompt_surf.get_rect(bottomright=(sw - 20, sh - 20))
+
+        bg_rect = prompt_rect.inflate(20, 10)
+        pygame.draw.rect(self.screen, theme.ACCENT_LOW, bg_rect, 1)
+        self.screen.blit(prompt_surf, prompt_rect)

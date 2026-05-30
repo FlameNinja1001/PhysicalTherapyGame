@@ -1,14 +1,19 @@
 import pygame
 
 # Colors
-BACKGROUND = (10, 15, 25)
-ACCENT     = (0, 230, 180)  # Cyan/Teal
-ACCENT_LOW = (0, 100, 80)
+BACKGROUND = (5, 5, 10)  # Deep black
+ACCENT     = (230, 30, 50)  # Vibrant red
+ACCENT_SECONDARY = (0, 230, 180)  # Cyan/Teal (for variety)
+ACCENT_LOW = (80, 10, 20)  # Dark red
 TEXT       = (240, 245, 255)
 WHITE      = (255, 255, 255)
 BLACK      = (0, 0, 0)
 GRAY       = (100, 105, 115)
 RED        = (230, 50, 70)
+CYAN       = (50, 230, 255)  # Bright cyan accents
+YELLOW     = (255, 220, 50)  # Yellow highlights
+SPLATTER_RED = (200, 20, 40)
+SPLATTER_CYAN = (30, 180, 200)
 
 # Fonts (will be initialized in theme.init())
 FONTS = {

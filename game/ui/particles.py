@@ -11,10 +11,15 @@ class Particle:
         self.x = random.randint(0, theme.WIDTH)
         self.y = random.randint(0, theme.HEIGHT)
         self.size = random.uniform(1, 4)
-        self.speed = random.uniform(10, 30)
-        self.opacity = random.randint(30, 150)
+        self.speed = random.uniform(10, 40)
+        self.opacity = random.randint(30, 180)
         self.angle = random.uniform(0, math.pi * 2)
         self.amplitude = random.uniform(0.5, 2.0)
+
+        if random.random() < 0.7:  # 70% red
+            self.color = theme.ACCENT
+        else:  # 30% cyan
+            self.color = theme.CYAN
 
     def update(self, dt):
         self.y -= self.speed * dt
@@ -25,12 +30,12 @@ class Particle:
             self.y = theme.HEIGHT + 10
 
     def draw(self, surface):
-        s = pygame.Surface((self.size*2, self.size*2), pygame.SRCALPHA)
-        pygame.draw.circle(s, (theme.ACCENT[0], theme.ACCENT[1], theme.ACCENT[2], self.opacity), (self.size, self.size), self.size)
-        surface.blit(s, (self.x, self.y))
+        s = pygame.Surface((int(self.size*2)+1, int(self.size*2)+1), pygame.SRCALPHA)
+        pygame.draw.circle(s, (*self.color, self.opacity), (int(self.size), int(self.size)), int(self.size))
+        surface.blit(s, (int(self.x), int(self.y)))
 
 class ParticleSystem:
-    def __init__(self, count=50):
+    def __init__(self, count=60):
         self.particles = [Particle() for _ in range(count)]
 
     def update(self, dt):
