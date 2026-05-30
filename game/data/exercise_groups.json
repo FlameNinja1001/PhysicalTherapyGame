@@ -1,0 +1,22 @@
+{
+  "groups": [
+    {
+      "name": "Arms",
+      "subtitle": "Arboreal Adventure",
+      "icon": "🌳",
+      "exercises": ["clap.npz", "parallel_arm_raise.npz", "lateral_raise.npz"]
+    },
+    {
+      "name": "Legs",
+      "subtitle": "Lofty Leap",
+      "icon": "☁️",
+      "exercises": ["squat_rep.npz", "lateral_lunge.npz", "right_lunge.npz"]
+    },
+    {
+      "name": "Torso",
+      "subtitle": "Tidal Trek",
+      "icon": "🏊",
+      "exercises": ["toe_touch.npz", "right_side_bend.npz", "lateral_hip_thrust.npz"]
+    }
+  ]
+}
