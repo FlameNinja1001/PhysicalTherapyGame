@@ -561,7 +561,7 @@ wheels = [
 ]
 
 [[package]]
-name = "pose-track-maybe"
+name = "PhysicalTherapyGame"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
