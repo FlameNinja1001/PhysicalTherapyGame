@@ -9,13 +9,13 @@ dependencies = [
     "opencv-python>=4.13.0.92; sys_platform != 'darwin'",
     "mediapipe>=0.10.35; sys_platform != 'darwin'",
     "numpy>=2.4.6; sys_platform != 'darwin'",
-
     # macOS
     "mediapipe==0.10.21; sys_platform == 'darwin'",
     "opencv-python>=4.10.0,<4.11.0; sys_platform == 'darwin'",
     "numpy>=1.20.0,<2.0.0; sys_platform == 'darwin'",
-    "pygame>=2.5.2",
     "esper>=3.0.0",
+    "pygame-gui>=0.6.14",
+    "pygame-ce>=2.5.7",
 ]
 
 [tool.uv]

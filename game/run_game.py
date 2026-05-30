@@ -44,7 +44,7 @@ def main():
         active_ex = ExerciseLoader.load_template(templates[0])
         print(f"Loaded template: {active_ex.name}")
 
-    # 4. Initialize ECS World (esper uses global state by default now, or named worlds)
+    # 4. Initialize ECS World
     esper.switch_world("game")
 
     # Add Player Entity with all required components
@@ -72,7 +72,6 @@ def main():
 
         # 6. Main Game Loop
         running = True
-        active_idx = 0
 
         while running:
             # Event handling
@@ -90,6 +89,7 @@ def main():
                             screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
                         else:
                             screen = pygame.display.set_mode((1280, 720))
+
                         # Update render system with new screen
                         render_sys = esper.get_processor(RenderSystem)
                         render_sys.screen = screen
@@ -98,9 +98,9 @@ def main():
                     if pygame.K_1 <= event.key <= pygame.K_9:
                         idx = event.key - pygame.K_1
                         if idx < len(templates):
-                            active_idx = idx
                             new_ex = ExerciseLoader.load_template(templates[idx])
                             esper.add_component(player, new_ex)
+
                             # Reset rep state
                             esper.add_component(player, RepStateComponent())
 
