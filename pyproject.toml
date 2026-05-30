@@ -5,7 +5,13 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "mediapipe>=0.10.35",
-    "numpy>=2.4.6",
-    "opencv-python>=4.13.0.92",
+    # General
+    "opencv-python>=4.13.0.92; sys_platform != 'darwin'",
+    "mediapipe>=0.10.35; sys_platform != 'darwin'",
+    "numpy>=2.4.6; sys_platform != 'darwin'",
+
+    # macOS
+    "mediapipe==0.10.21; sys_platform == 'darwin'",
+    "opencv-python>=4.10.0,<4.11.0; sys_platform == 'darwin'",
+    "numpy>=1.20.0,<2.0.0; sys_platform == 'darwin'",
 ]
