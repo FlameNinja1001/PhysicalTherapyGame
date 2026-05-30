@@ -1,4 +1,7 @@
 import sys
+import os
+import glob
+import json
 import time
 import pathlib
 import cv2
@@ -7,7 +10,7 @@ import mediapipe as mp
 
 from mediapipe.tasks.python.core.base_options import BaseOptions
 from mediapipe.tasks.python.vision.pose_landmarker import (
-    PoseLandmarker, PoseLandmarkerOptions, PoseLandmarkerResult, 
+    PoseLandmarker, PoseLandmarkerOptions,
     PoseLandmarksConnections, PoseLandmark
 )
 from mediapipe.tasks.python.vision.core.vision_task_running_mode import VisionTaskRunningMode
@@ -52,7 +55,7 @@ def draw_joint(frame, a, b, c, label, angle_deg, colour):
     cv2.rectangle(frame, (tx-2, ty-th-3), (tx+tw+2, ty+3), (10,10,20), -1)
     cv2.putText(frame, text, (tx, ty), cv2.FONT_HERSHEY_SIMPLEX, 0.48, colour, 1, cv2.LINE_AA)
 
-def draw_panel(frame, rows, h, reps, state_msg, progress, deviation):
+def draw_panel(frame, rows, h, reps, state_msg, progress, deviation, dev_thresh, peak_thresh):
     PANEL_W = 230
     fw = frame.shape[1]
     roi = frame[:, fw-PANEL_W:]
@@ -63,16 +66,16 @@ def draw_panel(frame, rows, h, reps, state_msg, progress, deviation):
 
     # Status Header
     cv2.putText(frame, f"REPS: {reps}", (fw-PANEL_W+10, 36), cv2.FONT_HERSHEY_DUPLEX, 1.2, GREEN, 2, cv2.LINE_AA)
-    
+
     # Form UI
     cv2.putText(frame, f"PHASE: {state_msg}", (fw-PANEL_W+10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.45, CYAN, 1, cv2.LINE_AA)
-    
-    prog_col = GREEN if progress > 0.75 else WHITE
+
+    prog_col = GREEN if progress > peak_thresh else WHITE
     cv2.putText(frame, f"PROG:  {int(progress*100)}%", (fw-PANEL_W+10, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.5, prog_col, 1, cv2.LINE_AA)
-    
-    dev_col = RED if deviation > 30 else WHITE
+
+    dev_col = RED if deviation > dev_thresh else WHITE
     cv2.putText(frame, f"DEV:   {int(deviation)} deg", (fw-PANEL_W+10, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, dev_col, 1, cv2.LINE_AA)
-    
+
     cv2.line(frame, (fw-PANEL_W+10, 115), (fw-10, 115), GRAY, 1)
 
     y = 140
@@ -86,65 +89,134 @@ def draw_panel(frame, rows, h, reps, state_msg, progress, deviation):
         cv2.putText(frame, f"{val:5.1f}'", (fw-60, y-1), cv2.FONT_HERSHEY_SIMPLEX, 0.42, WHITE, 1, cv2.LINE_AA)
         y += 36
 
+def draw_ui_overlay(frame, templates, active_idx, rep_detector):
+    y = 30
+    cv2.putText(frame, "Templates (Press 1-9):", (10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, CYAN, 1, cv2.LINE_AA)
+    y += 20
+    for i, t in enumerate(templates):
+        prefix = "[*]" if i == active_idx else f"[{i+1}]"
+        name = os.path.basename(t)
+        colour = GREEN if i == active_idx else WHITE
+        cv2.putText(frame, f"{prefix} {name}", (10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, colour, 1, cv2.LINE_AA)
+        y += 20
+
+    y += 10
+    cv2.putText(frame, "Settings:", (10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, CYAN, 1, cv2.LINE_AA)
+    y += 20
+    cv2.putText(frame, f"[R/F] Dev Thresh:   {rep_detector.dev_thresh:.1f}", (10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, WHITE, 1, cv2.LINE_AA)
+    y += 20
+    cv2.putText(frame, f"[T/G] Start Thresh: {rep_detector.prog_start_thresh:.2f}", (10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, WHITE, 1, cv2.LINE_AA)
+    y += 20
+    cv2.putText(frame, f"[Y/H] Peak Thresh:  {rep_detector.prog_peak_thresh:.2f}", (10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, WHITE, 1, cv2.LINE_AA)
+    y += 25
+    cv2.putText(frame, "[S] Save Settings", (10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, ORANGE, 1, cv2.LINE_AA)
+    y += 20
+    cv2.putText(frame, "[Q] Quit", (10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, RED, 1, cv2.LINE_AA)
+
 # ── New Keyframe State Machine ─────────────────────────────
 class KeyframeRepCounter:
-    def __init__(self, template_path):
-        data = np.load(template_path)
-        self.start_state = data['start']
-        self.peak_state = data['peak']
-        
-        # Calculate the mathematical vector from Start -> Peak
-        self.movement_vector = self.peak_state - self.start_state
-        self.vector_sq_length = np.dot(self.movement_vector, self.movement_vector)
-        
-        if self.vector_sq_length < 1e-5:
-            print("WARNING: Start and Peak states are identical. Re-record template.")
-            self.vector_sq_length = 1e-5
-            
+    def __init__(self):
+        self.template_path = None
+        self.start_state = None
+        self.peak_state = None
+        self.movement_vector = None
+        self.vector_sq_length = 1.0
+
         self.phase = 0       # 0: Need Start, 1: Need Peak, 2: Need Return
         self.rep_count = 0
         self.progress = 0.0
         self.deviation = 0.0
 
+        self.dev_thresh = 70.0
+        self.prog_start_thresh = 0.25
+        self.prog_peak_thresh = 0.40
+
+    def load_template(self, path):
+        self.template_path = path
+        data = np.load(path)
+        self.start_state = data['start']
+        self.peak_state = data['peak']
+
+        # Calculate the mathematical vector from Start -> Peak
+        self.movement_vector = self.peak_state - self.start_state
+        self.vector_sq_length = np.dot(self.movement_vector, self.movement_vector)
+
+        if self.vector_sq_length < 1e-5:
+            print("WARNING: Start and Peak states are identical. Re-record template.")
+            self.vector_sq_length = 1e-5
+
+        self.phase = 0
+        self.rep_count = 0
+
+        # Load config if exists
+        conf_path = path + '.json'
+        if os.path.exists(conf_path):
+            with open(conf_path, 'r') as f:
+                c = json.load(f)
+                self.dev_thresh = c.get('dev', 35.0)
+                self.prog_start_thresh = c.get('start', 0.25)
+                self.prog_peak_thresh = c.get('peak', 0.40)
+        else:
+            self.dev_thresh = 35.0
+            self.prog_start_thresh = 0.25
+            self.prog_peak_thresh = 0.40
+
+    def save_template_config(self):
+        if not self.template_path: return
+        conf_path = self.template_path + '.json'
+        with open(conf_path, 'w') as f:
+            json.dump({
+                'dev': self.dev_thresh,
+                'start': self.prog_start_thresh,
+                'peak': self.prog_peak_thresh
+            }, f)
+
     def update(self, live_angles):
+        if self.start_state is None:
+            return 0, "NO TEMPLATE", 0.0, 0.0
+
         live = np.array(live_angles)
-        
+
         # 1. Calculate Progress (Projection of live position onto the movement vector)
         w = live - self.start_state
         self.progress = np.dot(w, self.movement_vector) / self.vector_sq_length
         self.progress = np.clip(self.progress, 0.0, 1.2) # Cap for UI readability
-        
+
         # 2. Calculate Deviation (How far off the correct track the user's form is)
         expected_angles = self.start_state + (self.progress * self.movement_vector)
         self.deviation = np.mean(np.abs(live - expected_angles))
-        
+
         state_msg = "POOR FORM"
-        
+
         # Only allow state transitions if the user is performing the exercise correctly
-        if self.deviation < 35.0:  # Allow 35 degrees average joint wiggle room
+        if self.deviation < self.dev_thresh:  # Configurable wiggle room
             if self.phase == 0:
                 state_msg = "ALIGN TO START"
-                if self.progress < 0.25:
+                if self.progress < self.prog_start_thresh:
                     self.phase = 1 # User is at the start
             elif self.phase == 1:
                 state_msg = "GO DOWN"
-                if self.progress > 0.40:
+                if self.progress > self.prog_peak_thresh:
                     self.phase = 2 # User hit the bottom of the squat!
             elif self.phase == 2:
                 state_msg = "COME UP"
-                if self.progress < 0.25:
+                if self.progress < self.prog_start_thresh:
                     self.rep_count += 1
                     self.phase = 1 # Reset for next rep
-                    
+
         return self.rep_count, state_msg, self.progress, self.deviation
 
 # ── Main Runtime Loop ──────────────────────────────────────
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python main_dtw.py <path_to_template.npz>")
-        sys.exit(1)
-        
-    rep_detector = KeyframeRepCounter(sys.argv[1])
+    templates = sorted(glob.glob('training_data/*.npz'))
+    if not templates:
+        print("No .npz templates found in 'training_data' folder.")
+        # We can still start, but it won't do much without a template.
+
+    rep_detector = KeyframeRepCounter()
+    active_idx = 0
+    if templates:
+        rep_detector.load_template(templates[active_idx])
 
     model_path = "pose_landmarker.task"
     if not pathlib.Path(model_path).exists():
@@ -164,7 +236,7 @@ def main():
 
     with PoseLandmarker.create_from_options(options) as landmarker:
         LM = PoseLandmark
-        
+
         while True:
             ok, frame = cap.read()
             if not ok: break
@@ -183,7 +255,7 @@ def main():
                 draw_skeleton(frame, lm, w, h)
 
                 def p(idx): return px(lm, idx, w, h)
-                def coords(idx): return (lm[idx].x, lm[idx].y) 
+                def coords(idx): return (lm[idx].x, lm[idx].y)
 
                 live_angles = [
                     angle_at(coords(LM.LEFT_HIP),      coords(LM.LEFT_SHOULDER),  coords(LM.LEFT_WRIST)),
@@ -215,13 +287,35 @@ def main():
                     ("R knee flex",     live_angles[5], ORANGE),
                     ("L hip flex",      live_angles[6], CYAN),
                     ("R hip flex",      live_angles[7], CYAN),
-                ], h, total_reps, state_msg, prog, dev)
+                ], h, total_reps, state_msg, prog, dev, rep_detector.dev_thresh, rep_detector.prog_peak_thresh)
 
             else:
                 cv2.putText(frame, "no person detected", (30, h//2), cv2.FONT_HERSHEY_SIMPLEX, 1.0, RED, 2, cv2.LINE_AA)
 
+            draw_ui_overlay(frame, templates, active_idx, rep_detector)
+
             cv2.imshow("Pose Tracker Engine", frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'): break
+
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord('q') or key == 27: # q or Esc
+                break
+
+            # Handle template selection
+            for i in range(min(len(templates), 9)):
+                if key == ord(str(i+1)):
+                    active_idx = i
+                    rep_detector.load_template(templates[i])
+
+            # Handle settings adjustments
+            if key == ord('r'): rep_detector.dev_thresh += 5.0
+            if key == ord('f'): rep_detector.dev_thresh = max(5.0, rep_detector.dev_thresh - 5.0)
+            if key == ord('t'): rep_detector.prog_start_thresh += 0.05
+            if key == ord('g'): rep_detector.prog_start_thresh -= 0.05
+            if key == ord('y'): rep_detector.prog_peak_thresh += 0.05
+            if key == ord('h'): rep_detector.prog_peak_thresh -= 0.05
+            if key == ord('s'):
+                rep_detector.save_template_config()
+                print(f"Saved config for {rep_detector.template_path}")
 
     cap.release()
     cv2.destroyAllWindows()
