@@ -44,7 +44,7 @@ class GameHUD:
         else:
             pygame.draw.polygon(surface, color, points)
 
-    def draw(self, state, rep, ex):
+    def draw(self, state, rep, ex, total_height=0):
         sw, sh = self.screen.get_size()
 
         # 1. Exercise Name (Top Center Slanted Block)
@@ -97,6 +97,14 @@ class GameHUD:
         score_bg = pygame.Rect(sw - 260, 20, 240, 45)
         self.draw_parallelogram(self.screen, score_bg, theme.ACCENT, 255, -20)
         self.screen.blit(score_txt, (score_bg.x + 40, score_bg.y + 10))
+
+        # 4b. Height Badge (Below Score - Cyan accent)
+        if total_height > 0:
+            height_val = f"HEIGHT {int(total_height)}m"
+            height_txt = theme.FONTS['body'].render(height_val, True, theme.BLACK)
+            height_bg = pygame.Rect(sw - 260, 75, 240, 45)
+            self.draw_parallelogram(self.screen, height_bg, theme.ACCENT_SECONDARY, 255, -20)
+            self.screen.blit(height_txt, (height_bg.x + 40, height_bg.y + 10))
 
         # 5. Feedback Messages (Slam in effect)
         if self.feedback_timer > 0:

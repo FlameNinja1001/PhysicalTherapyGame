@@ -1,7 +1,7 @@
 import pygame
 import random
 from game.scenes.base_scene import BaseScene
-from game.ui import theme, particles, persona, persona_menu, paint_effects
+from game.ui import theme, particles, persona, persona_menu, paint_effects, animations
 
 class MainMenuScene(BaseScene):
     def __init__(self, screen):
@@ -10,19 +10,14 @@ class MainMenuScene(BaseScene):
         self.persona = persona.Persona(250, 450)
 
         menu_items = ["START GAME", "HOW TO PLAY", "QUIT"]
-        self.menu = persona_menu.PersonaMenu(menu_items, 700, 250)
+        self.menu = persona_menu.PersonaMenu(menu_items, 800, 320)
 
-        # Create dramatic background splatters
         self.bg_splatters = [
-            paint_effects.PaintSplatter(150, 120, theme.SPLATTER_RED, size=80),
-            paint_effects.PaintSplatter(1000, 200, theme.SPLATTER_CYAN, size=60),
-            paint_effects.PaintSplatter(400, 500, theme.SPLATTER_RED, size=50),
-            paint_effects.PaintSplatter(900, 550, theme.SPLATTER_CYAN, size=70),
+            paint_effects.PaintSplatter(120, 150, theme.SPLATTER_RED, size=60),
         ]
 
-        # Create grunge texture
         sw, sh = screen.get_size()
-        self.grunge = paint_effects.GrungeTexture(sw, sh, theme.GRAY, alpha=30)
+        self.grunge = paint_effects.GrungeTexture(sw, sh, theme.GRAY, alpha=15)
 
         # Animation timer for effects
         self.anim_time = 0
@@ -54,54 +49,76 @@ class MainMenuScene(BaseScene):
         sw, sh = self.screen.get_size()
         self.screen.fill(theme.BACKGROUND)
 
-        # Draw grunge texture
-        self.grunge.draw(self.screen)
-
-        # Draw background splatters
-        for splatter in self.bg_splatters:
-            splatter.draw(self.screen)
-
         self.particles.draw(self.screen)
-
-        # Scale persona y based on current height
-        self.persona.y = sh - 270
-        self.persona.draw(self.screen)
-
-        # Draw dramatic overlapping title (Persona 5 style)
+        self._draw_character(sw, sh)
         self._draw_title(sw, sh)
 
         self.menu.draw(self.screen)
 
-        # Draw corner prompts (like Persona)
         self._draw_prompts()
 
-    def _draw_title(self, sw, sh):
-        """Draw dramatic overlapping title text"""
-        # Large background text "PHYSIO" at angle
-        title_font = pygame.font.SysFont("Arial", 120, bold=True)
+    def _draw_character(self, sw, sh):
+        """Draw a large stylized character on the left side"""
 
-        # Top large text - "PHYSIO" in red
+        # Large circle for head
+        head_y = sh // 2 + int(animations.oscillate(self.anim_time, 15, 1.5))
+        head_center = (200, head_y)
+        pygame.draw.circle(self.screen, theme.ACCENT, head_center, 80)
+        pygame.draw.circle(self.screen, theme.WHITE, head_center, 80, 5)
+
+        # Eyes
+        eye_y = head_y - 10
+        pygame.draw.circle(self.screen, theme.WHITE, (180, eye_y), 12)
+        pygame.draw.circle(self.screen, theme.WHITE, (220, eye_y), 12)
+
+        # Stylish angular body
+        body_points = [
+            (200, head_y + 80),
+            (240, head_y + 120),
+            (230, head_y + 200),
+            (200, head_y + 220),
+            (170, head_y + 200),
+            (160, head_y + 120)
+        ]
+        pygame.draw.polygon(self.screen, theme.ACCENT, body_points)
+        pygame.draw.polygon(self.screen, theme.WHITE, body_points, 5)
+
+        # Arms - angular style
+        # Left arm
+        arm_wave = int(animations.oscillate(self.anim_time, 20, 2.0))
+        left_arm = [(160, head_y + 120), (120, head_y + 150 + arm_wave), (130, head_y + 160 + arm_wave)]
+        pygame.draw.polygon(self.screen, theme.CYAN, left_arm)
+
+        # Right arm
+        right_arm = [(240, head_y + 120), (280, head_y + 150 - arm_wave), (270, head_y + 160 - arm_wave)]
+        pygame.draw.polygon(self.screen, theme.CYAN, right_arm)
+
+    def _draw_title(self, sw, sh):
+        """Draw title with subtle overlap (Persona style)"""
+        # "PHYSIO" in bold red with slight slant
+        physio_font = pygame.font.SysFont("Arial", 100, bold=True)
         paint_effects.draw_slanted_text(
-            self.screen, title_font, "PHYSIO",
-            theme.ACCENT, (sw // 2 - 100, 100), angle=-5
+            self.screen, physio_font, "PHYSIO",
+            theme.ACCENT, (sw // 2 - 40, 100), angle=-3
         )
 
-        # Overlapping "REHAB" in white/cyan
-        rehab_font = pygame.font.SysFont("Arial", 110, bold=True)
+        # "REHAB" in white with slight overlap and slant
+        rehab_font = pygame.font.SysFont("Arial", 100, bold=True)
         paint_effects.draw_slanted_text(
             self.screen, rehab_font, "REHAB",
-            theme.WHITE, (sw // 2 + 50, 150), angle=-8
+            theme.WHITE, (sw // 2 + 60, 130), angle=-4
         )
 
-        # Small subtitle at angle
+        # Clean tagline below
         subtitle_font = theme.FONTS['body']
         subtitle_text = subtitle_font.render("YOUR RECOVERY JOURNEY", True, theme.CYAN)
-        subtitle_rect = subtitle_text.get_rect(center=(sw // 2 + 100, 200))
+        subtitle_rect = subtitle_text.get_rect(center=(sw // 2, 210))
 
-        # Draw line under subtitle
-        line_start = (subtitle_rect.left - 50, subtitle_rect.bottom + 5)
-        line_end = (subtitle_rect.right + 30, subtitle_rect.bottom + 5)
-        pygame.draw.line(self.screen, theme.ACCENT, line_start, line_end, 3)
+        # Stylish underline
+        line_y = subtitle_rect.bottom + 5
+        pygame.draw.line(self.screen, theme.ACCENT,
+                        (subtitle_rect.left - 50, line_y),
+                        (subtitle_rect.right + 50, line_y), 3)
 
         self.screen.blit(subtitle_text, subtitle_rect)
 

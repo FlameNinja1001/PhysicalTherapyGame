@@ -42,6 +42,8 @@ class RepDetectionSystem(esper.Processor):
                 elif rep.phase == 2:
                     rep.state_msg = "COME UP"
                     if rep.progress < ex.prog_start_thresh:
-                        rep.rep_count += 1
+                        # Only count rep if below target
+                        if rep.rep_count < state.target_reps:
+                            rep.rep_count += 1
+                            state.last_rep_event = True  # Signal to game logic
                         rep.phase = 1
-                        state.last_rep_event = True  # Signal to game logic

@@ -35,7 +35,7 @@ class Particle:
         surface.blit(s, (int(self.x), int(self.y)))
 
 class ParticleSystem:
-    def __init__(self, count=60):
+    def __init__(self, count=40):
         self.particles = [Particle() for _ in range(count)]
 
     def update(self, dt):

@@ -101,17 +101,6 @@ class GameScene(BaseScene):
                 render_sys = esper.get_processor(RenderSystem)
                 render_sys.screen = self.screen
 
-            # Handle numbers 1-9 to switch templates
-            if pygame.K_1 <= event.key <= pygame.K_9:
-                idx = event.key - pygame.K_1
-                if idx < len(self.templates):
-                    new_ex = ExerciseLoader.load_template(self.templates[idx])
-                    esper.add_component(self.player, new_ex)
-                    esper.add_component(self.player, RepStateComponent())
-
-                    state = esper.component_for_entity(self.player, GameStateComponent)
-                    state.active_idx = idx
-
     def update(self, dt):
         if self.is_loading:
             self.loading_time += dt
@@ -124,6 +113,10 @@ class GameScene(BaseScene):
 
         # Check for Level Complete
         state = esper.component_for_entity(self.player, GameStateComponent)
+
+        # Store dt in state component so systems can access it
+        state.dt = dt
+
         if state.phase == "LEVEL_COMPLETE":
             if not self.completion_ui:
                 self.completion_ui = CompletionScreen(self.screen, state.score)

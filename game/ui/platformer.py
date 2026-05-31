@@ -22,23 +22,48 @@ class PlatformerMinigame:
         # World state
         self.platforms = []
         self.last_rep_count = 0
+        self.current_platform_idx = 0  # Track actual platform player is on
+        self.total_height_climbed = 0  # Cumulative high score
+        self.initial_player_y = y + height - 100
+        self.platform_spacing = 180  # Vertical distance between platforms
+        self.next_platform_y = y + height - 100  # Y position for next platform
 
         # Generate initial vertical platforms
-        for i in range(20):
-            # Staggered X positions for a zigzag climb
-            px = x + 150 + (i % 2) * 200 + random.randint(-50, 50)
-            py = y + height - 100 - i * 180
-            self.platforms.append(pygame.Rect(px, py, 150, 20))
+        for i in range(30):
+            self._spawn_platform(i)
+
+    def _spawn_platform(self, index):
+        """Spawn a new platform at the next available position"""
+        px = self.rect.x + 150 + (index % 2) * 200 + random.randint(-50, 50)
+        py = self.next_platform_y - index * self.platform_spacing
+        self.platforms.append(pygame.Rect(px, py, 150, 20))
 
     def update(self, dt, rep_progress, rep_count):
+        # 0. Generate new platforms ahead of player
+        if len(self.platforms) > 0:
+            highest_platform = self.platforms[-1]
+            # If player is getting close to the highest platform, spawn more
+            if self.player_pos.y < highest_platform.y + 1000:
+                for i in range(10):
+                    new_index = len(self.platforms)
+                    self._spawn_platform(new_index)
+
+
         # 1. Trigger Jump on Rep Completion
         if rep_count > self.last_rep_count:
+            # Calculate height climbed (distance between platforms)
+            old_idx = self.current_platform_idx
+            new_idx = self.current_platform_idx + 1
+            if new_idx < len(self.platforms):
+                height_gain = abs(self.platforms[old_idx].y - self.platforms[new_idx].y)
+                self.total_height_climbed += height_gain
+                self.current_platform_idx = new_idx
+
             self.last_rep_count = rep_count
             self.is_jumping = True
 
             # Snappy physics-based jump
-            idx = min(rep_count, len(self.platforms) - 1)
-            target_p = self.platforms[idx]
+            target_p = self.platforms[min(self.current_platform_idx, len(self.platforms) - 1)]
 
             # Calculate required horizontal velocity to reach target in certain time
             jump_duration = 0.8
@@ -51,8 +76,7 @@ class PlatformerMinigame:
             self.player_pos += self.player_vel * dt
 
             # Landing check
-            idx = min(self.last_rep_count, len(self.platforms) - 1)
-            target_p = self.platforms[idx]
+            target_p = self.platforms[min(self.current_platform_idx, len(self.platforms) - 1)]
             if self.player_vel.y > 0 and self.player_pos.y >= target_p.top - 40:
                 self.player_pos.y = target_p.top - 40
                 self.player_pos.x = target_p.centerx
@@ -62,9 +86,8 @@ class PlatformerMinigame:
                 # Update camera target when landing
                 self.target_scroll_y = self.player_pos.y - (self.rect.y + self.rect.height // 2)
         else:
-            # While waiting for rep, stay on platform
-            idx = min(self.last_rep_count, len(self.platforms) - 1)
-            target_p = self.platforms[idx]
+            # While waiting for rep, stay on current platform
+            target_p = self.platforms[min(self.current_platform_idx, len(self.platforms) - 1)]
             self.player_pos.y = target_p.top - 40
             self.player_pos.x = target_p.centerx
 
@@ -73,6 +96,10 @@ class PlatformerMinigame:
         self.scroll_y += (self.target_scroll_y - self.scroll_y) * 3 * dt
 
     def reset_reps(self):
+        self.last_rep_count = 0
+
+    def reset_reps_only(self):
+        """Reset rep count but keep player position and cumulative height"""
         self.last_rep_count = 0
 
     def draw(self):
@@ -90,8 +117,8 @@ class PlatformerMinigame:
             rel_rect.y -= self.scroll_y
 
             if self.rect.colliderect(rel_rect):
-                # Slanted Persona style
-                color = theme.ACCENT if i < self.last_rep_count else theme.ACCENT_LOW
+                # Slanted Persona style - highlight platforms we've completed
+                color = theme.ACCENT if i < self.current_platform_idx else theme.ACCENT_LOW
                 points = [
                     (rel_rect.x + 15, rel_rect.y),
                     (rel_rect.x + rel_rect.width + 15, rel_rect.y),

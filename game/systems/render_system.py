@@ -26,9 +26,14 @@ class RenderSystem(esper.Processor):
         self.current_demo_path = ""
         self.last_rep_count = 0
 
+        # Video intro state
+        self.video_intro_active = False
+        self.video_intro_frame_count = 0
+        self.video_intro_zoom = 0.0  # 0.0 = corner, 1.0 = full screen
+        self.video_intro_target_zoom = 0.0
+
     def get_demo_path(self, ex_name):
-        # Assumes videos are in training_data/videos/ and named similarly to .npz
-        # Using .mov as found in the directory
+        # Videos are in training_data/videos/
         video_name = os.path.basename(ex_name).replace('.npz', '.mov')
         path = os.path.join('training_data', 'videos', video_name)
         if os.path.exists(path):
@@ -36,9 +41,7 @@ class RenderSystem(esper.Processor):
         return ""
 
     def process(self):
-        dt = 1/60.0 # Approximate, could pass actual dt
-
-        # Update logical minigame dimensions if screen resized
+        # minigame dimensions are based on screen size
         sw, sh = self.screen.get_size()
         self.minigame.rect = pygame.Rect(sw // 2, 0, sw // 2, sh)
 
@@ -46,24 +49,43 @@ class RenderSystem(esper.Processor):
                 CameraFrameComponent, PoseLandmarksComponent,
                 RepStateComponent, GameStateComponent, ExerciseComponent, JointAnglesComponent):
 
+            # Get dt from state component
+            dt = state.dt
+
             if cam.frame is None:
                 continue
 
-            # Reset last_rep_count if exercise changes
+            # reset last_rep_count if exercise changes
             if os.path.basename(ex.template_path) != os.path.basename(self.current_demo_path).replace('.mov', '.npz'):
                 self.last_rep_count = 0
                 self.minigame.reset_reps()
+
+                # Start video intro when exercise changes
+                self.video_intro_active = True
+                self.video_intro_frame_count = 0
+                self.video_intro_target_zoom = 1.0
 
             # 1. Update Sub-systems
             self.hud.update(dt)
             self.minigame.update(dt, rep.progress, rep.rep_count)
 
-            # Check for new rep feedback
+            # Update video intro state
+            if self.video_intro_active:
+                self.video_intro_frame_count += 1
+                intro_duration_frames = int(4.0 / dt) if dt > 0 else 420
+                if self.video_intro_frame_count > intro_duration_frames:
+                    self.video_intro_target_zoom = 0.0  # Zoom back to corner
+                    if self.video_intro_zoom < 0.1:  # Finished zooming out
+                        self.video_intro_active = False
+
+            self.video_intro_zoom += (self.video_intro_target_zoom - self.video_intro_zoom) * 5 * dt
+
+            # check for new rep feedback
             if rep.rep_count > self.last_rep_count:
                 self.hud.set_feedback("NICE!", theme.ACCENT)
                 self.last_rep_count = rep.rep_count
             elif rep.deviation > ex.dev_thresh and rep.progress > 0.1:
-                # Optional: recurring feedback for poor form
+                # TODO: recurring feedback for poor form
                 pass
 
             # 2. Draw Split Screen
@@ -74,10 +96,8 @@ class RenderSystem(esper.Processor):
             h, w = cam.frame.shape[:2]
             display_frame = cam.frame.copy()
 
-            # Darken and draw skeleton
             cv2.addWeighted(display_frame, 0.6, np.zeros_like(display_frame), 0.4, 0, display_frame)
             if pose.landmarks:
-                # Skeleton and joints (reuse existing logic but simpler)
                 self.draw_skeleton_cv(display_frame, pose.landmarks, w, h)
 
             frame_rgb = cv2.cvtColor(display_frame, cv2.COLOR_BGR2RGB)
@@ -124,20 +144,55 @@ class RenderSystem(esper.Processor):
                     ret, d_frame = self.demo_cap.read()
 
                 if ret:
-                    d_frame = cv2.resize(d_frame, (220, 160))
-                    d_rgb = cv2.cvtColor(d_frame, cv2.COLOR_BGR2RGB)
-                    d_surf = pygame.image.frombuffer(d_rgb.tobytes(), (220, 160), "RGB")
+                    # Maintain aspect ratio
+                    orig_h, orig_w = d_frame.shape[:2]
+                    aspect_ratio = orig_w / orig_h
 
-                    # Corner position (Bottom Left of the screen, over the webcam slightly or tucked in corner)
-                    # Let's put it at (20, 540) so it's in the webcam's bottom left
-                    self.hud.draw_parallelogram(self.screen, pygame.Rect(15, 535, 230, 170), theme.ACCENT, 255, 5)
-                    self.screen.blit(d_surf, (20, 540))
+                    # Corner state: small video in bottom left
+                    corner_height = 160
+                    corner_width = int(corner_height * aspect_ratio)
+                    corner_x = 15
+                    corner_y = sh - corner_height - 25
+
+                    # Zoomed state: fit to left half while maintaining aspect ratio, centered
+                    left_half_w = sw // 2
+                    left_half_h = sh
+
+                    # Calculate zoomed dimensions maintaining aspect ratio
+                    if aspect_ratio > (left_half_w / left_half_h):
+                        # Video is wider, fit to width
+                        zoomed_width = left_half_w
+                        zoomed_height = int(left_half_w / aspect_ratio)
+                    else:
+                        # Video is taller, fit to height
+                        zoomed_height = left_half_h
+                        zoomed_width = int(left_half_h * aspect_ratio)
+
+                    # Center the zoomed video in left half
+                    zoomed_x = (left_half_w - zoomed_width) // 2
+                    zoomed_y = (left_half_h - zoomed_height) // 2
+
+                    # Lerp between corner and zoomed states
+                    final_width = int(corner_width + (zoomed_width - corner_width) * self.video_intro_zoom)
+                    final_height = int(corner_height + (zoomed_height - corner_height) * self.video_intro_zoom)
+                    final_x = int(corner_x + (zoomed_x - corner_x) * self.video_intro_zoom)
+                    final_y = int(corner_y + (zoomed_y - corner_y) * self.video_intro_zoom)
+
+                    # Resize and convert
+                    d_frame = cv2.resize(d_frame, (final_width, final_height))
+                    d_rgb = cv2.cvtColor(d_frame, cv2.COLOR_BGR2RGB)
+                    d_surf = pygame.image.frombuffer(d_rgb.tobytes(), (final_width, final_height), "RGB")
+
+                    # Draw parallelogram frame
+                    para_w = final_width + 10
+                    para_h = final_height + 10
+                    self.hud.draw_parallelogram(self.screen, pygame.Rect(final_x, final_y, para_w, para_h), theme.ACCENT, 255, 5)
+                    self.screen.blit(d_surf, (final_x + 5, final_y + 5))
 
             # 3. Draw HUD Overlays
-            self.hud.draw(state, rep, ex)
+            self.hud.draw(state, rep, ex, self.minigame.total_height_climbed)
 
     def draw_skeleton_cv(self, frame, landmarks, w, h):
-        # Use connections from the Tasks API version
         from mediapipe.tasks.python.vision.pose_landmarker import PoseLandmarksConnections
         connections = PoseLandmarksConnections.POSE_LANDMARKS
 

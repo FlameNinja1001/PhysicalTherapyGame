@@ -1,7 +1,12 @@
 import sys
 import pygame
+import esper
 from game.ui import theme
 from game.scenes.main_menu_scene import MainMenuScene
+from game.systems.render_system import RenderSystem
+
+TARGET_FPS = 60
+MAX_DT = 0.1  # Cap dt at 100ms to prevent huge jumps during lag
 
 class SceneManager:
     def __init__(self, screen):
@@ -13,23 +18,18 @@ class SceneManager:
 
     def toggle_fullscreen(self):
         if not self.fullscreen:
-            # Store current size before going fullscreen
-            self.windowed_size = self.screen.get_size()
+            self.windowed_size = self.screen.get_size() # remember windowed size when unfullscreen-ing
             self.fullscreen = True
             self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         else:
             self.fullscreen = False
-            # Restore previous windowed size
             self.screen = pygame.display.set_mode(self.windowed_size, pygame.RESIZABLE)
 
-        # Update current scene screen reference
         self.scene.screen = self.screen
         self.update_subsystems()
 
     def update_subsystems(self):
         # Notify ECS processors if we are in GameScene
-        import esper
-        from game.systems.render_system import RenderSystem
         try:
             render_sys = esper.get_processor(RenderSystem)
             if render_sys:
@@ -41,12 +41,13 @@ class SceneManager:
         clock = pygame.time.Clock()
 
         while self.running:
-            dt = clock.tick(60) / 1000.0
+            raw_dt = clock.tick(TARGET_FPS) / 1000.0
+            dt = min(raw_dt, MAX_DT)
 
             # 1. Events
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    self.on_exit() # Ensure cleanup
+                    self.on_exit()
                     self.running = False
 
                 elif event.type == pygame.KEYDOWN:
@@ -54,7 +55,6 @@ class SceneManager:
                         self.toggle_fullscreen()
 
                 elif event.type == pygame.VIDEORESIZE:
-                    # Simplified resize to avoid tiling bugs
                     if not self.fullscreen:
                         self.screen = pygame.display.set_mode((event.w, event.h))
                         self.scene.screen = self.screen
@@ -67,7 +67,6 @@ class SceneManager:
 
             # 3. Scene switching
             if self.scene.next_scene:
-                # Transition animation
                 overlay = pygame.Surface((self.screen.get_width(), self.screen.get_height()))
                 overlay.fill(theme.BLACK)
 
@@ -95,27 +94,21 @@ class SceneManager:
 
             # 4. Draw
             self.scene.draw()
-            # Flip after all drawing is done for the current frame
+
             pygame.display.flip()
 
     def on_exit(self):
-        # Global cleanup
         self.scene.on_exit()
         pygame.quit()
         sys.exit()
 
 def main():
-    # Initialize Pygame
     pygame.init()
-    pygame.display.set_caption("Physio Rehab: Healthcare Hero")
-
-    # Initialize UI Theme
     theme.init()
 
-    # Setup Screen - Simple flags for maximum compatibility
+    pygame.display.set_caption("Physio Rehab: Healthcare Hero")
     screen = pygame.display.set_mode((theme.WIDTH, theme.HEIGHT))
 
-    # Start Manager
     manager = SceneManager(screen)
     manager.run()
 

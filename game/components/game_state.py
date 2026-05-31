@@ -8,6 +8,7 @@ class GameStateComponent:
     phase: str = "PLAYING"
     last_rep_event: bool = False
     streak: int = 0
+    dt: float = 0.016  # Delta time for frame-independent updates
 
     # UI Info
     templates: list[str] = field(default_factory=list)

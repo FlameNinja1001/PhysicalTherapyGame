@@ -17,24 +17,33 @@ class PersonaMenu:
         self.offset_left = 60
         self.pulse_time = 0
 
-        # Create paint splatters for each menu item
-        self.splatters = []
-        for i in range(len(items)):
-            if random.random() < 0.6:  # 60% chance of splatter per item
-                splat_y = y + (i * item_height) + item_height // 2
-                color = theme.SPLATTER_RED if random.random() < 0.7 else theme.SPLATTER_CYAN
-                self.splatters.append(paint_effects.PaintSplatter(x - 100, splat_y, color, size=40))
+        # Animated splatter that follows selection
+        self.splatter_y = y
+        self.splatter_target_y = y
+        # Create multiple splatters for more dramatic effect
+        self.active_splatters = []
 
     def update(self, dt):
         # Smoothly slide selector with more snap
         self.target_y = self.y + (self.selected_idx * self.item_height)
         self.selector_y += (self.target_y - self.selector_y) * 20 * dt
 
+        # Animate splatter position to follow selection - smooth tracking
+        self.splatter_target_y = self.target_y + self.item_height // 2
+        self.splatter_y += (self.splatter_target_y - self.splatter_y) * 18 * dt
+
+        # Regenerate splatters at a moderate rate (~10 times per second)
+        if random.random() < dt * 10:
+            self.active_splatters = [
+                paint_effects.PaintSplatter(self.x - 120, self.splatter_y, theme.SPLATTER_RED, size=50),
+                paint_effects.PaintSplatter(self.x + self.width + 20, self.splatter_y + 10, theme.SPLATTER_CYAN, size=35),
+            ]
+
         self.pulse_time += dt
 
     def draw(self, surface):
-        # Draw paint splatters behind menu
-        for splatter in self.splatters:
+        # Draw animated paint splatters that follow selection
+        for splatter in self.active_splatters:
             splatter.draw(surface)
 
         for i, item in enumerate(self.items):
