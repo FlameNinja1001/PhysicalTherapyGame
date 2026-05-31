@@ -1,13 +1,17 @@
 import pygame
 import random
 from game.scenes.base_scene import BaseScene
-from game.ui import theme, particles, persona, persona_menu, paint_effects, animations
+from game.ui import theme, particles, persona, persona_menu, paint_effects, animations, hero
+from game.core.navigation import SceneNavigator
 
 class MainMenuScene(BaseScene):
     def __init__(self, screen):
         super().__init__(screen)
         self.particles = particles.ParticleSystem()
-        self.persona = persona.Persona(250, 450)
+
+        # Hero will be auto-positioned and scaled in update()
+        self.hero = hero.create_hero(0, 0)
+        self.hero.scale = 1.0
 
         menu_items = ["START GAME", "HOW TO PLAY", "QUIT"]
         self.menu = persona_menu.PersonaMenu(menu_items, 800, 320)
@@ -34,14 +38,29 @@ class MainMenuScene(BaseScene):
     def select_option(self):
         choice = self.menu.items[self.menu.selected_idx]
         if choice == "START GAME":
-            from game.scenes.level_select_scene import LevelSelectScene
-            self.next_scene = LevelSelectScene(self.screen)
+            self.next_scene = SceneNavigator.create_level_select(self.screen)
         elif choice == "QUIT":
             pygame.event.post(pygame.event.Event(pygame.QUIT))
 
     def update(self, dt):
+        sw, sh = self.screen.get_size()
+
+        hero_zone_width = sw * 0.35  # Reserve 35% of screen for hero
+        hero_target_height = sh * 0.65  # Hero should be 65% of screen height
+
+        # Calculate scale to make hero fit nicely
+        self.hero.scale = hero_target_height / 512  # Scale based on target height
+
+        # Position hero in center-left zone (at bottom like standing)
+        self.hero.x = hero_zone_width / 2 - 64  # Center in left zone
+        self.hero.y = sh - hero_target_height - 50  # Position near bottom with padding
+
+        # Position menu on the right side
+        self.menu.x = sw * 0.55  # Start menu at 55% across screen
+        self.menu.y = sh * 0.45  # Center vertically
+
         self.particles.update(dt)
-        self.persona.update(dt)
+        self.hero.update(dt)  # Update hero animation at 30 fps
         self.menu.update(dt)
         self.anim_time += dt
 
@@ -58,67 +77,40 @@ class MainMenuScene(BaseScene):
         self._draw_prompts()
 
     def _draw_character(self, sw, sh):
-        """Draw a large stylized character on the left side"""
-
-        # Large circle for head
-        head_y = sh // 2 + int(animations.oscillate(self.anim_time, 15, 1.5))
-        head_center = (200, head_y)
-        pygame.draw.circle(self.screen, theme.ACCENT, head_center, 80)
-        pygame.draw.circle(self.screen, theme.WHITE, head_center, 80, 5)
-
-        # Eyes
-        eye_y = head_y - 10
-        pygame.draw.circle(self.screen, theme.WHITE, (180, eye_y), 12)
-        pygame.draw.circle(self.screen, theme.WHITE, (220, eye_y), 12)
-
-        # Stylish angular body
-        body_points = [
-            (200, head_y + 80),
-            (240, head_y + 120),
-            (230, head_y + 200),
-            (200, head_y + 220),
-            (170, head_y + 200),
-            (160, head_y + 120)
-        ]
-        pygame.draw.polygon(self.screen, theme.ACCENT, body_points)
-        pygame.draw.polygon(self.screen, theme.WHITE, body_points, 5)
-
-        # Arms - angular style
-        # Left arm
-        arm_wave = int(animations.oscillate(self.anim_time, 20, 2.0))
-        left_arm = [(160, head_y + 120), (120, head_y + 150 + arm_wave), (130, head_y + 160 + arm_wave)]
-        pygame.draw.polygon(self.screen, theme.CYAN, left_arm)
-
-        # Right arm
-        right_arm = [(240, head_y + 120), (280, head_y + 150 - arm_wave), (270, head_y + 160 - arm_wave)]
-        pygame.draw.polygon(self.screen, theme.CYAN, right_arm)
+        """Draw the animated hero character."""
+        # Draw the animated hero sprite at 30 fps
+        self.hero.draw(self.screen)
 
     def _draw_title(self, sw, sh):
-        """Draw title with subtle overlap (Persona style)"""
+        """Draw title on the right side to complement the hero on the left"""
+        # Position title in the right zone (starts at 40% across screen)
+        title_x = sw * 0.45
+        title_y = sh * 0.12
+
         # "PHYSIO" in bold red with slight slant
-        physio_font = pygame.font.SysFont("Arial", 100, bold=True)
+        physio_font = pygame.font.SysFont("Arial", 85, bold=True)
         paint_effects.draw_slanted_text(
             self.screen, physio_font, "PHYSIO",
-            theme.ACCENT, (sw // 2 - 40, 100), angle=-3
+            theme.ACCENT, (title_x, title_y), angle=-3
         )
 
-        # "REHAB" in white with slight overlap and slant
-        rehab_font = pygame.font.SysFont("Arial", 100, bold=True)
+        # "HERO" in white with slight overlap and slant
+        hero_font = pygame.font.SysFont("Arial", 85, bold=True)
         paint_effects.draw_slanted_text(
-            self.screen, rehab_font, "REHAB",
-            theme.WHITE, (sw // 2 + 60, 130), angle=-4
+            self.screen, hero_font, "HERO",
+            theme.WHITE, (title_x + 100, title_y + 35), angle=-4
         )
 
         # Clean tagline below
         subtitle_font = theme.FONTS['body']
         subtitle_text = subtitle_font.render("YOUR RECOVERY JOURNEY", True, theme.CYAN)
-        subtitle_rect = subtitle_text.get_rect(center=(sw // 2, 210))
+        subtitle_rect = subtitle_text.get_rect(left=int(title_x + 10), top=int(title_y + 95))
 
         # Stylish underline
         line_y = subtitle_rect.bottom + 5
         pygame.draw.line(self.screen, theme.ACCENT,
-                        (subtitle_rect.left - 50, line_y),
-                        (subtitle_rect.right + 50, line_y), 3)
+                        (subtitle_rect.left, line_y),
+                        (subtitle_rect.right, line_y), 3)
 
         self.screen.blit(subtitle_text, subtitle_rect)
 

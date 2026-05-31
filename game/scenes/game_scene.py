@@ -1,121 +1,62 @@
 import pygame
-import cv2
-import glob
-import esper
 import math
-
 from game.ui import theme
 from game.scenes.base_scene import BaseScene
-from game.components.camera import CameraFrameComponent
-from game.components.pose import PoseLandmarksComponent, JointAnglesComponent
-from game.components.exercise import ExerciseComponent, RepStateComponent
-from game.components.game_state import GameStateComponent
-
-from game.systems.camera_system import CameraSystem
-from game.systems.pose_system import PoseDetectionSystem
-from game.systems.angle_system import AngleComputationSystem
-from game.systems.rep_system import RepDetectionSystem
-from game.systems.game_system import GameLogicSystem
-from game.systems.render_system import RenderSystem
-
-from game.core.exercise_loader import ExerciseLoader
-from game.core.mediapipe_manager import create_landmarker
-from game.core.mediapipe_thread import MediapipeThread
+from game.core.game_session import GameSession
+from game.core.navigation import SceneNavigator
 from game.ui.completion_screen import CompletionScreen
 
 class GameScene(BaseScene):
+    """Main gameplay scene - delegates to GameSession for game logic."""
+
     def __init__(self, screen, template_paths=None):
         super().__init__(screen)
         self.is_loading = True
         self.loading_time = 0
         self.completion_ui = None
 
-        # 1. Setup Camera
-        self.cap = cv2.VideoCapture(0)
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-
-        # 2. Load Templates
-        self.templates = template_paths if template_paths else sorted(glob.glob('training_data/*.npz'))
-        if not self.templates:
-            active_ex = ExerciseComponent()
-        else:
-            active_ex = ExerciseLoader.load_template(self.templates[0])
-
-        # 3. Initialize ECS World
-        esper.switch_world("game")
-        esper.clear_database() # Clean start for new game session
-
-        self.player = esper.create_entity(
-            CameraFrameComponent(),
-            PoseLandmarksComponent(),
-            JointAnglesComponent(),
-            active_ex,
-            RepStateComponent(),
-            GameStateComponent(
-                target_reps=10,
-                templates=self.templates,
-                active_idx=0
-            )
-        )
-
-        # 4. Initialize MediaPipe Thread
-        self.mp_thread = MediapipeThread(self.cap)
-        self.mp_thread.start()
-
-        # 5. Systems
-        # Pass the thread to Camera and Pose systems so they can grab the latest data
-        esper.add_processor(CameraSystem(self.mp_thread), priority=60)
-        esper.add_processor(PoseDetectionSystem(self.mp_thread), priority=50)
-        esper.add_processor(AngleComputationSystem(), priority=40)
-        esper.add_processor(RepDetectionSystem(), priority=30)
-        esper.add_processor(GameLogicSystem(), priority=20)
-        esper.add_processor(RenderSystem(self.screen), priority=10)
+        # Create game session (handles all hardware/ECS setup)
+        self.session = GameSession(screen, template_paths)
 
     def handle_event(self, event):
         if self.completion_ui:
             result = self.completion_ui.handle_event(event)
             if result == "RESTART":
-                self.next_scene = GameScene(self.screen, self.templates)
+                self.next_scene = SceneNavigator.create_game(self.screen, self.session.templates)
             elif result == "MISSIONS":
-                from game.scenes.level_select_scene import LevelSelectScene
-                self.next_scene = LevelSelectScene(self.screen)
+                self.next_scene = SceneNavigator.create_level_select(self.screen)
             elif result == "MAIN MENU":
-                from game.scenes.main_menu_scene import MainMenuScene
-                self.next_scene = MainMenuScene(self.screen)
+                self.next_scene = SceneNavigator.create_main_menu(self.screen)
             return
 
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
-                from game.scenes.main_menu_scene import MainMenuScene
-                self.next_scene = MainMenuScene(self.screen)
+                self.next_scene = SceneNavigator.create_main_menu(self.screen)
 
-            if event.key == pygame.K_f:
-                state = esper.component_for_entity(self.player, GameStateComponent)
-                state.fullscreen = not state.fullscreen
-                if state.fullscreen:
-                    self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-                else:
-                    self.screen = pygame.display.set_mode((1280, 720))
+            # Debug hotkey: UP ARROW to simulate a rep
+            elif event.key == pygame.K_UP:
+                rep_state = self.session.get_rep_state()
+                game_state = self.session.get_state()
+                if rep_state and game_state:
+                    rep_state.rep_count += 1
+                    print(f"[DEBUG] Rep simulated! Count: {rep_state.rep_count}/{game_state.target_reps}")
 
-                render_sys = esper.get_processor(RenderSystem)
-                render_sys.screen = self.screen
+            # Debug hotkey: C to trigger mission complete screen
+            elif event.key == pygame.K_c:
+                state = self.session.get_state()
+                state.phase = "LEVEL_COMPLETE"
+                state.score = 12345  # Set a test score
+                print("[DEBUG] Mission complete triggered with hotkey 'C'")
 
     def update(self, dt):
         if self.is_loading:
             self.loading_time += dt
-            # Try to grab a frame from thread to see if camera is ready
-            frame, landmarks = self.mp_thread.get_data()
-            if frame is not None:
-                # Camera is ready, stop loading
+            if self.session.check_ready():
                 self.is_loading = False
             return
 
         # Check for Level Complete
-        state = esper.component_for_entity(self.player, GameStateComponent)
-
-        # Store dt in state component so systems can access it
-        state.dt = dt
+        state = self.session.get_state()
 
         if state.phase == "LEVEL_COMPLETE":
             if not self.completion_ui:
@@ -123,7 +64,7 @@ class GameScene(BaseScene):
             self.completion_ui.update(dt)
             return
 
-        esper.process()
+        self.session.update(dt)
 
     def draw(self):
         if self.completion_ui:
@@ -156,11 +97,7 @@ class GameScene(BaseScene):
         pass
 
     def on_exit(self):
-        # Cleanup
-        if hasattr(self, 'mp_thread'):
-            self.mp_thread.stop()
-            self.mp_thread.join()
-        if hasattr(self, 'cap'):
-            self.cap.release()
-        esper.clear_database()
+        """Clean up game session resources."""
+        if hasattr(self, 'session'):
+            self.session.cleanup()
         return super().on_exit()

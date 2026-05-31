@@ -5,12 +5,12 @@ from game.components.exercise import ExerciseComponent, RepStateComponent
 from game.components.game_state import GameStateComponent
 
 class RepDetectionSystem(esper.Processor):
-    def process(self):
+    def process(self, dt=0.016):
         for ent, (angles, ex, rep, state) in esper.get_components(
                 JointAnglesComponent, ExerciseComponent, RepStateComponent, GameStateComponent):
 
-            # Reset pulse event
-            state.last_rep_event = False
+            # Clear event queue at start of frame
+            state.events.clear()
 
             if ex.start_state is None:
                 rep.state_msg = "NO TEMPLATE"
@@ -45,5 +45,5 @@ class RepDetectionSystem(esper.Processor):
                         # Only count rep if below target
                         if rep.rep_count < state.target_reps:
                             rep.rep_count += 1
-                            state.last_rep_event = True  # Signal to game logic
+                            state.events.append("REP_COMPLETE")  # Signal to game logic
                         rep.phase = 1

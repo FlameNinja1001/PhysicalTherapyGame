@@ -3,6 +3,7 @@ import json
 import os
 from game.scenes.base_scene import BaseScene
 from game.ui import theme, particles, persona, level_card_menu, paint_effects
+from game.core.navigation import SceneNavigator
 
 class LevelSelectScene(BaseScene):
     def __init__(self, screen):
@@ -39,14 +40,12 @@ class LevelSelectScene(BaseScene):
             elif event.key == pygame.K_RETURN:
                 self.start_level()
             elif event.key == pygame.K_ESCAPE:
-                from game.scenes.main_menu_scene import MainMenuScene
-                self.next_scene = MainMenuScene(self.screen)
+                self.next_scene = SceneNavigator.create_main_menu(self.screen)
 
     def start_level(self):
         group = self.menu.get_selected_group()
-        from game.scenes.game_scene import GameScene
         paths = [os.path.join('training_data', e) for e in group['exercises']]
-        self.next_scene = GameScene(self.screen, template_paths=paths)
+        self.next_scene = SceneNavigator.create_game(self.screen, template_paths=paths)
 
     def update(self, dt):
         self.particles.update(dt)

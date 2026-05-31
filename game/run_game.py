@@ -106,7 +106,7 @@ def main():
     pygame.init()
     theme.init()
 
-    pygame.display.set_caption("Physio Rehab: Healthcare Hero")
+    pygame.display.set_caption("Physio Hero: Healthcare Hero")
     screen = pygame.display.set_mode((theme.WIDTH, theme.HEIGHT))
 
     manager = SceneManager(screen)

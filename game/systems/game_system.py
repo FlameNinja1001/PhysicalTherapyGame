@@ -6,7 +6,7 @@ from game.core.exercise_loader import ExerciseLoader
 import esper
 
 class GameLogicSystem(esper.Processor):
-    def process(self):
+    def process(self, dt=0.016):
         for ent, (state, rep) in esper.get_components(GameStateComponent, RepStateComponent):
             # Check for exercise completion regardless of rep event
             if rep.rep_count >= state.target_reps and state.phase == "PLAYING":
@@ -27,7 +27,7 @@ class GameLogicSystem(esper.Processor):
                     print("LEVEL COMPLETE!")
 
             # Score calculation on rep events
-            if state.last_rep_event:
+            if "REP_COMPLETE" in state.events:
                 if rep.deviation < 15.0:
                     points = 10
                     state.streak += 1

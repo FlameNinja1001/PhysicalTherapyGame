@@ -17,7 +17,7 @@ def angle_at(a, b, c):
     return float(np.degrees(np.arccos(np.clip(np.dot(ba, bc) / n, -1.0, 1.0))))
 
 class AngleComputationSystem(esper.Processor):
-    def process(self):
+    def process(self, dt=0.016):
         for ent, (pose, angles) in esper.get_components(PoseLandmarksComponent, JointAnglesComponent):
             if not pose.landmarks:
                 continue

@@ -6,7 +6,7 @@ class PoseDetectionSystem(esper.Processor):
         super().__init__()
         self.mp_thread = mp_thread
 
-    def process(self):
+    def process(self, dt=0.016):
         for ent, pose in esper.get_component(PoseLandmarksComponent):
             frame, landmarks = self.mp_thread.get_data()
             if landmarks:

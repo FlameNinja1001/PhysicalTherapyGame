@@ -7,7 +7,7 @@ class CameraSystem(esper.Processor):
         super().__init__()
         self.mp_thread = mp_thread
 
-    def process(self):
+    def process(self, dt=0.016):
         for ent, cam in esper.get_component(CameraFrameComponent):
             frame, landmarks = self.mp_thread.get_data()
             if frame is not None:
