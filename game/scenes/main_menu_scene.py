@@ -5,13 +5,17 @@ from game.ui import theme, particles, persona, persona_menu, paint_effects, anim
 from game.core.navigation import SceneNavigator
 
 class MainMenuScene(BaseScene):
-    def __init__(self, screen):
+    def __init__(self, screen, menu_hero=None):
         super().__init__(screen)
         self.particles = particles.ParticleSystem()
 
         # Hero will be auto-positioned and scaled in update()
-        self.hero = hero.create_hero(0, 0)
-        self.hero.scale = 1.0
+        # Reuse hero instance if provided, otherwise create new one
+        if menu_hero is None:
+            self.hero = hero.create_hero(0, 0)
+            self.hero.scale = 1.0
+        else:
+            self.hero = menu_hero
 
         menu_items = ["START GAME", "HOW TO PLAY", "QUIT"]
         self.menu = persona_menu.PersonaMenu(menu_items, 800, 320)
@@ -38,7 +42,7 @@ class MainMenuScene(BaseScene):
     def select_option(self):
         choice = self.menu.items[self.menu.selected_idx]
         if choice == "START GAME":
-            self.next_scene = SceneNavigator.create_level_select(self.screen)
+            self.next_scene = SceneNavigator.create_level_select(self.screen, self.hero)
         elif choice == "QUIT":
             pygame.event.post(pygame.event.Event(pygame.QUIT))
 

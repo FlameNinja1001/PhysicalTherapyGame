@@ -2,15 +2,21 @@ import pygame
 import json
 import os
 from game.scenes.base_scene import BaseScene
-from game.ui import theme, particles, persona, level_card_menu, paint_effects
+from game.ui import theme, particles, hero, level_card_menu, paint_effects
 from game.core.navigation import SceneNavigator
 
 class LevelSelectScene(BaseScene):
-    def __init__(self, screen):
+    def __init__(self, screen, menu_hero=None):
         super().__init__(screen)
         self.particles = particles.ParticleSystem()
-        self.persona = persona.Persona(250, 450)
-        self.persona.current_msg = "Ready to start a new mission?"
+
+        # Hero will be auto-positioned and scaled in update()
+        # Reuse hero instance if provided, otherwise create new one
+        if menu_hero is None:
+            self.hero = hero.create_hero(0, 0)
+            self.hero.scale = 1.0
+        else:
+            self.hero = menu_hero
 
         # Load groups
         # Ensure path is correct relative to workspace root
@@ -40,7 +46,7 @@ class LevelSelectScene(BaseScene):
             elif event.key == pygame.K_RETURN:
                 self.start_level()
             elif event.key == pygame.K_ESCAPE:
-                self.next_scene = SceneNavigator.create_main_menu(self.screen)
+                self.next_scene = SceneNavigator.create_main_menu(self.screen, self.hero)
 
     def start_level(self):
         group = self.menu.get_selected_group()
@@ -48,8 +54,20 @@ class LevelSelectScene(BaseScene):
         self.next_scene = SceneNavigator.create_game(self.screen, template_paths=paths)
 
     def update(self, dt):
+        sw, sh = self.screen.get_size()
+
+        hero_zone_width = sw * 0.35  # Reserve 35% of screen for hero
+        hero_target_height = sh * 0.65  # Hero should be 65% of screen height
+
+        # Calculate scale to make hero fit nicely
+        self.hero.scale = hero_target_height / 512  # Scale based on target height
+
+        # Position hero in center-left zone (at bottom like standing)
+        self.hero.x = hero_zone_width / 2 - 64  # Center in left zone
+        self.hero.y = sh - hero_target_height - 50  # Position near bottom with padding
+
         self.particles.update(dt)
-        self.persona.update(dt)
+        self.hero.update(dt)  # Update hero animation at 30 fps
         self.menu.update(dt)
 
     def draw(self):
@@ -65,9 +83,8 @@ class LevelSelectScene(BaseScene):
 
         self.particles.draw(self.screen)
 
-        # Scale persona position based on height
-        self.persona.y = sh - 270
-        self.persona.draw(self.screen)
+        # Draw the animated hero character
+        self.hero.draw(self.screen)
 
         # Draw dramatic title (Persona style)
         title_font = pygame.font.SysFont("Arial", 110, bold=True)

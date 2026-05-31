@@ -5,14 +5,14 @@ class SceneNavigator:
     """Factory for creating scenes, avoiding circular imports."""
 
     @staticmethod
-    def create_main_menu(screen):
+    def create_main_menu(screen, menu_hero=None):
         from game.scenes.main_menu_scene import MainMenuScene
-        return MainMenuScene(screen)
+        return MainMenuScene(screen, menu_hero)
 
     @staticmethod
-    def create_level_select(screen):
+    def create_level_select(screen, menu_hero=None):
         from game.scenes.level_select_scene import LevelSelectScene
-        return LevelSelectScene(screen)
+        return LevelSelectScene(screen, menu_hero)
 
     @staticmethod
     def create_exercise_select(screen):

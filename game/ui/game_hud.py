@@ -24,7 +24,7 @@ class GameHUD:
         if self.feedback_timer > 0:
             self.feedback_timer -= dt
 
-    def draw(self, state, rep, ex, total_height=0):
+    def draw(self, state, rep, ex, total_height=0, minigame_type="platformer"):
         sw, sh = self.screen.get_size()
 
         # 1. Exercise Name (Top Center Slanted Block)
@@ -44,9 +44,14 @@ class GameHUD:
 
         badge_rect = pygame.Rect(badge_x, badge_y, badge_w, badge_h)
         shapes.draw_parallelogram(self.screen, badge_rect, (20, 25, 35), 255, -15)
+
+        # Draw outline matching the parallelogram slant (-15 degrees)
+        slant = -15
         pygame.draw.polygon(self.screen, theme.ACCENT, [
-            (badge_x + 30, badge_y), (badge_x + badge_w + 30, badge_y),
-            (badge_x + badge_w, badge_y + badge_h), (badge_x, badge_y + badge_h)
+            (badge_x + slant, badge_y),
+            (badge_x + badge_w + slant, badge_y),
+            (badge_x + badge_w, badge_y + badge_h),
+            (badge_x, badge_y + badge_h)
         ], 3)
 
         rep_txt = theme.FONTS['title'].render(rep_val, True, theme.WHITE)
@@ -71,20 +76,28 @@ class GameHUD:
         #         fill_color = theme.ACCENT if rep.deviation < ex.dev_thresh else theme.RED
         #         shapes.draw_parallelogram(self.screen, seg_rect, fill_color, 255, 15)
 
-        # 4. Score Badge (Top Right - More angled)
+        # 4. Score Badge (Top Right - More angled) - Dynamic width
         score_val = f"SCORE {state.score:05d}"
         score_txt = theme.FONTS['body'].render(score_val, True, theme.BLACK)
-        score_bg = pygame.Rect(sw - 260, 20, 240, 45)
+        score_w = score_txt.get_width() + 80  # Add padding
+        score_bg = pygame.Rect(sw - score_w - 20, 20, score_w, 45)
         shapes.draw_parallelogram(self.screen, score_bg, theme.ACCENT, 255, -20)
         self.screen.blit(score_txt, (score_bg.x + 40, score_bg.y + 10))
 
-        # 4b. Height Badge (Below Score - Cyan accent)
+        # 4b. Progress Badge (Below Score - Cyan accent) - Dynamic label and width
         if total_height > 0:
-            height_val = f"HEIGHT {int(total_height)}m"
-            height_txt = theme.FONTS['body'].render(height_val, True, theme.BLACK)
-            height_bg = pygame.Rect(sw - 260, 75, 240, 45)
-            shapes.draw_parallelogram(self.screen, height_bg, theme.ACCENT_SECONDARY, 255, -20)
-            self.screen.blit(height_txt, (height_bg.x + 40, height_bg.y + 10))
+            # Choose label based on minigame type
+            if minigame_type == "platformer":
+                progress_label = "HEIGHT"
+            else:
+                progress_label = "DISTANCE"
+
+            progress_val = f"{progress_label} {int(total_height)}m"
+            progress_txt = theme.FONTS['body'].render(progress_val, True, theme.BLACK)
+            progress_w = progress_txt.get_width() + 80  # Add padding
+            progress_bg = pygame.Rect(sw - progress_w - 20, 75, progress_w, 45)
+            shapes.draw_parallelogram(self.screen, progress_bg, theme.ACCENT_SECONDARY, 255, -20)
+            self.screen.blit(progress_txt, (progress_bg.x + 40, progress_bg.y + 10))
 
         # 5. Feedback Messages (Slam in effect)
         if self.feedback_timer > 0:

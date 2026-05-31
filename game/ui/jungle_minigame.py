@@ -69,6 +69,7 @@ class JungleMinigame:
         self.swing_target_y = 200
         self.charge_timer = 0  # Time spent in charge animation
         self.catch_timer = 0  # Time spent in catch animation
+        self.last_rep_count = 0  # Track previous rep count to detect new reps
 
     def reset_reps(self):
         """Full reset - return to starting position."""
@@ -79,11 +80,12 @@ class JungleMinigame:
         self.swing_state = "idle"
         self.charge_timer = 0
         self.catch_timer = 0
+        self.last_rep_count = 0
 
     def reset_reps_only(self):
         """Reset only the rep tracking, keep player progress intact."""
-        # Don't reset position, just ensure we're in a valid state
-        pass
+        # Reset rep tracking so new exercise can detect reps
+        self.last_rep_count = 0
 
     def update(self, dt, rep_progress, rep_count):
         """Update minigame state."""
@@ -100,8 +102,8 @@ class JungleMinigame:
                 })
             self.world_width = self.tree_spacing * (len(self.trees) + 2)
 
-        # Check if we should start a new swing
-        if rep_count > self.current_tree:
+        # Check if we should start a new swing (detect NEW rep, not absolute count)
+        if rep_count > self.last_rep_count:
             if self.swing_state == "idle":
                 # Start charge phase
                 self.swing_state = "charge"
@@ -113,6 +115,7 @@ class JungleMinigame:
                 self.swing_target_x = self.trees[self.current_tree]['x']
                 self.swing_target_y = self._calculate_player_y(self.current_tree)
                 self.hero_sprite.set_animation("charge", reset=True)
+            self.last_rep_count = rep_count
 
         # Update swing state machine
         if self.swing_state == "charge":
@@ -187,8 +190,6 @@ class JungleMinigame:
 
     def draw(self):
         """Draw the jungle minigame."""
-        # Set clipping rect to prevent drawing over webcam area (left 50% of screen)
-        # Minigame should only draw in its designated area (right 50%)
         self.screen.set_clip(self.rect)
 
         # Draw gradient green background (light to dark from top to bottom)
@@ -294,11 +295,3 @@ class JungleMinigame:
         # Overlap more of the top trunk for natural tree appearance
         leaves_y = leaves_top_y - leaves_h + int(80 * zoom)  # More overlap
         self.screen.blit(leaves, (leaves_x, leaves_y))
-
-        # Highlight current tree with a glow
-        if is_current:
-            glow_radius = int(15 * zoom)
-            glow_center = (screen_x, int(leaves_y + leaves_h // 2))
-            pygame.draw.circle(self.screen, theme.YELLOW, glow_center, glow_radius)
-            pygame.draw.circle(self.screen, theme.WHITE, glow_center, max(1, glow_radius - 5))
-

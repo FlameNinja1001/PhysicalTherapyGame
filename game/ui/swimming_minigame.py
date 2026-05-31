@@ -2,6 +2,7 @@
 import pygame
 import math
 from game.ui import theme, hero, dynamic_camera
+from game.core.spritesheet import Spritesheet
 
 class SwimmingMinigame:
     """Player swims continuously, dashing forward on each rep."""
@@ -30,6 +31,8 @@ class SwimmingMinigame:
         self.dash_progress = 0
         self.dash_start_x = 0
         self.dash_distance = 200  # Distance per rep
+        self.last_rep_count = 0  # Track previous rep count to detect new reps
+        self.base_position = 0  # Base position offset for continuous progress across exercises
 
         # Wave particles for effect
         self.waves = []
@@ -44,6 +47,35 @@ class SwimmingMinigame:
         self.hero_offset_x = -60  # Offset left to center
         self.hero_offset_y = -60  # Offset up to center vertically
 
+        # Load ocean water animation (39 frames, 20 columns, 2 rows)
+        try:
+            ocean_sheet = Spritesheet('game/data/ocean_spritesheet.png')
+            # Get first frame to determine sprite size
+            sheet_width = ocean_sheet.sheet.get_width()
+            sheet_height = ocean_sheet.sheet.get_height()
+            sprite_width = sheet_width // 20  # 20 columns
+            sprite_height = sheet_height // 2  # 2 rows
+            self.ocean_frames = ocean_sheet.get_sprites_grid(
+                sprite_width, sprite_height, 20, 2,
+                start_x=0, start_y=0, spacing_x=0, spacing_y=0
+            )
+            # Only use first 39 frames
+            self.ocean_frames = self.ocean_frames[:39]
+            self.ocean_frame_index = 0
+            self.ocean_anim_time = 0
+            print(f"Ocean animation loaded: {len(self.ocean_frames)} frames at {sprite_width}x{sprite_height}")
+        except Exception as e:
+            print(f"Warning: Could not load ocean animation: {e}")
+            self.ocean_frames = None
+
+        # Load ocean gradient overlay
+        try:
+            self.ocean_gradient = pygame.image.load('game/data/ocean_gradient.png').convert_alpha()
+            print(f"Ocean gradient loaded: {self.ocean_gradient.get_width()}x{self.ocean_gradient.get_height()}")
+        except Exception as e:
+            print(f"Warning: Could not load ocean gradient: {e}")
+            self.ocean_gradient = None
+
     def reset_reps(self):
         """Full reset - return to starting position."""
         self.player_world_x = 0
@@ -51,11 +83,15 @@ class SwimmingMinigame:
         self.camera.target_x = 0
         self.total_distance = 0
         self.waves = []
+        self.last_rep_count = 0
+        self.base_position = 0
 
     def reset_reps_only(self):
         """Reset only the rep tracking, keep player progress intact."""
-        # Don't reset position or distance, player continues swimming
-        pass
+        # Save current position as base for next exercise
+        self.base_position = self.player_world_x
+        # Reset rep tracking so new exercise can detect reps
+        self.last_rep_count = 0
 
     def update(self, dt, rep_progress, rep_count):
         """Update minigame state."""
@@ -64,13 +100,16 @@ class SwimmingMinigame:
         self.arm_angle = math.sin(self.swim_time) * 25
         self.leg_kick = math.sin(self.swim_time * 1.5) * 15
 
-        # Check for new rep (dash forward)
-        expected_x = rep_count * self.dash_distance
-        if self.player_world_x < expected_x - 10:
+        # Check for new rep (dash forward) - detect NEW rep, not absolute count
+        if rep_count > self.last_rep_count:
             if not self.is_dashing:
                 self.is_dashing = True
                 self.dash_progress = 0
                 self.dash_start_x = self.player_world_x
+            self.last_rep_count = rep_count
+
+        # Calculate expected position (base_position + reps from current exercise)
+        expected_x = self.base_position + (rep_count * self.dash_distance)
 
         # Update dash
         if self.is_dashing:
@@ -93,7 +132,7 @@ class SwimmingMinigame:
                     self.wave_spawn_timer = 0
                     self.waves.append({
                         'x': self.player_world_x - 30,
-                        'y': self.rect.height // 2 + (math.sin(self.swim_time) * 20),
+                        'y': self.rect.height // 2 + 20,
                         'life': 1.0,
                         'size': 15
                     })
@@ -122,24 +161,41 @@ class SwimmingMinigame:
         else:
             self.hero_sprite.set_animation("idle", reset=False)
 
+        # Update ocean animation (30 fps)
+        if self.ocean_frames:
+            self.ocean_anim_time += dt
+            frame_duration = 1.0 / 30.0
+            if self.ocean_anim_time >= frame_duration:
+                self.ocean_anim_time -= frame_duration
+                self.ocean_frame_index = (self.ocean_frame_index + 1) % len(self.ocean_frames)
+
     def draw(self):
         """Draw the swimming minigame."""
-        # Background - ocean blue
-        pygame.draw.rect(self.screen, (20, 80, 150), self.rect)
+        # Set clipping to keep everything within bounds
+        self.screen.set_clip(self.rect)
 
-        # Draw water gradient
-        for i in range(5):
-            y = self.rect.y + i * (self.rect.height // 5)
-            color_intensity = 20 + i * 10
-            pygame.draw.rect(self.screen, (color_intensity, 80 + i * 5, 150 + i * 10),
-                           (self.rect.x, y, self.rect.width, self.rect.height // 5))
-
-        # Get camera offset and zoom
+        # Get camera offset and zoom FIRST
         camera_x, _ = self.camera.get_offset()
         zoom = self.camera.get_zoom()
 
-        # Draw underwater objects (coral, rocks) - move with camera and parallax
-        self._draw_underwater_scenery(camera_x, zoom)
+        # Draw smooth gradient background for night sky/water (darkish blue, 60% opacity)
+        self._draw_smooth_gradient(zoom)
+
+        # Draw animated ocean water
+        self._draw_ocean_water(zoom, camera_x)
+
+        # Draw peach-ish ground at bottom
+        ground_height = int(80 * zoom)
+        ground_y = self.rect.y + self.rect.height - ground_height
+        # Peach color gradient - lighter at top, darker at bottom
+        for i in range(ground_height):
+            t = i / ground_height
+            r = int(255 - t * 40)  # 255 -> 215
+            g = int(218 - t * 40)  # 218 -> 178
+            b = int(185 - t * 40)  # 185 -> 145
+            pygame.draw.line(self.screen, (r, g, b),
+                           (self.rect.x, ground_y + i),
+                           (self.rect.x + self.rect.width, ground_y + i))
 
         # Draw wave particles with zoom
         for wave in self.waves:
@@ -166,65 +222,67 @@ class SwimmingMinigame:
         self.hero_sprite.scale = 0.25 * zoom  # Scale hero with zoom
         self.hero_sprite.draw(self.screen)
 
-        # Draw progress
-        distance_text = f"Distance: {self.total_distance}m"
-        text_surf = theme.FONTS['body'].render(distance_text, True, theme.WHITE)
-        self.screen.blit(text_surf, (self.rect.x + 10, self.rect.y + 10))
+        # Reset clipping
+        self.screen.set_clip(None)
 
-        # Dash indicator
-        if self.is_dashing:
-            dash_text = "DASH!"
-            dash_surf = theme.FONTS['menu'].render(dash_text, True, theme.YELLOW)
-            dash_rect = dash_surf.get_rect(center=(self.rect.centerx, self.rect.y + 50))
-            self.screen.blit(dash_surf, dash_rect)
+    def _draw_smooth_gradient(self, zoom):
+        """Draw a smooth gradient background (brighter night sky for underwater scene)."""
+        # Create a surface with alpha for the gradient (same size regardless of zoom)
+        gradient_surf = pygame.Surface((self.rect.width, self.rect.height), pygame.SRCALPHA)
 
-    def _draw_underwater_scenery(self, camera_x, zoom):
-        """Draw scrolling underwater scenery with parallax and zoom."""
-        # Coral and rocks at intervals (closer to camera, moves at full speed)
-        for i in range(-2, 15):
-            world_x = i * 250
-            screen_offset_x = (world_x - camera_x) * zoom
-            screen_x = self.rect.x + int(screen_offset_x)
+        # Brighter blue night colors for better visibility with transparent water
+        top_color = (45, 56, 74)  # Brighter sky blue
+        bottom_color = (0, 23, 61)  # Lighter ocean blue
 
-            if screen_x < self.rect.x - 100 or screen_x > self.rect.x + self.rect.width + 100:
-                continue
+        # Draw many lines for smooth gradient
+        for i in range(self.rect.height):
+            t = i / self.rect.height
+            r = int(top_color[0] + (bottom_color[0] - top_color[0]) * t)
+            g = int(top_color[1] + (bottom_color[1] - top_color[1]) * t)
+            b = int(top_color[2] + (bottom_color[2] - top_color[2]) * t)
+            # Full opacity for base gradient
+            pygame.draw.line(gradient_surf, (r, g, b, 255), (0, i), (self.rect.width, i))
 
-            # Coral (triangle-ish) with zoom
-            coral_y = self.rect.y + int((self.rect.height - 80) * zoom)
-            coral_points = [
-                (screen_x, coral_y - int(40 * zoom)),
-                (screen_x - int(20 * zoom), coral_y),
-                (screen_x + int(20 * zoom), coral_y)
-            ]
-            pygame.draw.polygon(self.screen, (200, 100, 150), coral_points)
+        self.screen.blit(gradient_surf, (self.rect.x, self.rect.y))
 
-            # Small rock with zoom
-            rock_x = screen_x + int(100 * zoom)
-            rock_y = self.rect.y + int((self.rect.height - 60) * zoom)
-            pygame.draw.ellipse(self.screen, (100, 100, 100),
-                              (rock_x - int(25 * zoom), rock_y - int(15 * zoom),
-                               int(50 * zoom), int(30 * zoom)))
+    def _draw_ocean_water(self, zoom, camera_x):
+        """Draw animated ocean water sprite with zoom and transparency."""
+        if not self.ocean_frames or len(self.ocean_frames) == 0:
+            return
 
-        # Seaweed (wavy lines) with parallax (background layer at 0.7 speed)
-        parallax_factor = 0.7
-        for i in range(-1, 12):
-            world_x = i * 300 + 150
-            screen_offset_x = (world_x - camera_x * parallax_factor) * zoom
-            screen_x = self.rect.x + int(screen_offset_x)
+        # Get current frame
+        current_frame = self.ocean_frames[self.ocean_frame_index]
 
-            if screen_x < self.rect.x - 50 or screen_x > self.rect.x + self.rect.width + 50:
-                continue
+        # Scale water to fit the width of the minigame area AND apply zoom
+        water_target_width = int(self.rect.width * zoom)
+        water_aspect = current_frame.get_width() / current_frame.get_height()
+        water_target_height = int(water_target_width / water_aspect)
 
-            # Draw wavy seaweed with zoom
-            base_y = self.rect.y + int((self.rect.height - 50) * zoom)
-            wave_offset = math.sin(self.swim_time + i) * 10 * zoom
+        scaled_water = pygame.transform.smoothscale(current_frame, (water_target_width, water_target_height))
 
-            points = []
-            for j in range(8):
-                y = base_y - int(j * 10 * zoom)
-                x = screen_x + int(math.sin(self.swim_time * 2 + i + j * 0.5) * wave_offset)
-                points.append((x, y))
+        # Apply 70% opacity (179 alpha out of 255)
+        scaled_water_with_alpha = scaled_water.copy()
+        scaled_water_with_alpha.set_alpha(179)
 
-            if len(points) > 1:
-                pygame.draw.lines(self.screen, (50, 150, 80), False, points, max(1, int(3 * zoom)))
+        # Position water in lower portion of the screen (above ground) with zoom
+        ground_height = int(80 * zoom)
+        water_y = self.rect.y + self.rect.height - ground_height - water_target_height
 
+        # Apply horizontal camera offset for scrolling effect
+        water_x = self.rect.x - int((camera_x * zoom) % water_target_width)
+
+        # Draw multiple tiles if needed to cover the width
+        while water_x < self.rect.x + self.rect.width:
+            self.screen.blit(scaled_water_with_alpha, (water_x, water_y))
+            water_x += water_target_width
+
+        # Draw ocean gradient overlay on top
+        if self.ocean_gradient:
+            # Scale gradient to match water size
+            scaled_gradient = pygame.transform.smoothscale(self.ocean_gradient, (water_target_width, water_target_height))
+
+            # Draw gradient tiles on top of water
+            gradient_x = self.rect.x - int((camera_x * zoom) % water_target_width)
+            while gradient_x < self.rect.x + self.rect.width:
+                self.screen.blit(scaled_gradient, (gradient_x, water_y))
+                gradient_x += water_target_width

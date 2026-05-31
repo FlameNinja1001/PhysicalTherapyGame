@@ -30,6 +30,8 @@ class Hero(AnimatedSprite):
             )
 
             if frames:
+                # Only use the first 375 frames (the rest are empty)
+                frames = frames[:375]
                 # Add idle animation at 30 fps, looping
                 self.add_animation("idle", frames, fps=30, loop=True, is_default=True)
                 print(f"Hero loaded with {len(frames)} frames")

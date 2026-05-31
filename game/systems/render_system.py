@@ -120,4 +120,11 @@ class RenderSystem(esper.Processor):
                 elif hasattr(self.minigame, 'total_distance'):
                     minigame_stat = self.minigame.total_distance
 
-            self.hud.draw(state, rep, ex, minigame_stat)
+            minigame_type_map = {
+                "arms": "jungle",
+                "legs": "platformer",
+                "torso": "swimming"
+            }
+            minigame_type = minigame_type_map.get(self.current_category, "platformer")
+
+            self.hud.draw(state, rep, ex, minigame_stat, minigame_type)
