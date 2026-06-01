@@ -24,16 +24,25 @@ FONTS = {
 }
 
 def init():
-    # Use SysFont for simplicity or load specific .ttf files if available
-    # Try to find a font that supports emojis if possible
-    main_font = "Arial"
+    # Load Exo.ttf for main fonts
+    exo_font_path = "game/data/Exo-Medium.ttf"
+    exo_bold_font_path = "game/data/Exo-Bold.ttf"
     emoji_font = "Segoe UI Emoji,Apple Color Emoji,Noto Color Emoji,Symbola,DejaVu Sans"
 
-    FONTS['title'] = pygame.font.SysFont(main_font, 72, bold=True)
-    FONTS['menu']  = pygame.font.SysFont(main_font, 42, bold=True)
+    try:
+        FONTS['title'] = pygame.font.Font(exo_bold_font_path, 72)
+        FONTS['menu']  = pygame.font.Font(exo_bold_font_path, 42)
+        FONTS['body']  = pygame.font.Font(exo_font_path, 28)
+        FONTS['small'] = pygame.font.Font(exo_font_path, 18)
+    except:
+        print(f"Warning: Could not load {exo_font_path}, falling back to Arial")
+        main_font = "Arial"
+        FONTS['title'] = pygame.font.SysFont(main_font, 72, bold=True)
+        FONTS['menu']  = pygame.font.SysFont(main_font, 42, bold=True)
+        FONTS['body']  = pygame.font.SysFont(main_font, 28)
+        FONTS['small'] = pygame.font.SysFont(main_font, 18)
+
     FONTS['emoji'] = pygame.font.SysFont(emoji_font, 18)
-    FONTS['body']  = pygame.font.SysFont(main_font, 28)
-    FONTS['small'] = pygame.font.SysFont(main_font, 18)
 
 # Layout
 WIDTH = 1280

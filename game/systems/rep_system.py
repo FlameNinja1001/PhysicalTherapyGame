@@ -31,6 +31,11 @@ class RepDetectionSystem(esper.Processor):
             expected_angles = ex.start_state + (rep.progress * ex.movement_vector)
             rep.deviation = float(np.mean(np.abs(live - expected_angles)))
 
+            # 3. Handle Lock Messaging and State
+            if rep.is_locked:
+                rep.state_msg = "WAIT FOR MINIGAME"
+                continue
+
             rep.state_msg = "POOR FORM"
 
             # 3. State Machine
@@ -46,15 +51,11 @@ class RepDetectionSystem(esper.Processor):
                 elif rep.phase == 2:
                     rep.state_msg = "COME UP"
                     if rep.progress < ex.prog_start_thresh:
-                        # Only count rep if below target and not locked
-                        if not rep.is_locked:
-                            if rep.rep_count < state.target_reps:
-                                rep.rep_count += 1
-                                state.events.append("REP_COMPLETE")  # Signal to game logic
-                                # Play rep sound effect
-                                if self.audio:
-                                    self.audio.play_sfx('rep')
-                            rep.phase = 1
-                        else:
-                            # If locked, stay in phase 2 until unlocked, but user reached start
-                            rep.state_msg = "WAIT FOR MINIGAME"
+                        # Only count rep if below target
+                        if rep.rep_count < state.target_reps:
+                            rep.rep_count += 1
+                            state.events.append("REP_COMPLETE")  # Signal to game logic
+                            # Play rep sound effect
+                            if self.audio:
+                                self.audio.play_sfx('rep')
+                        rep.phase = 1
