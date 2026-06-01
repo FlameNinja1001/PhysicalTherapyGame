@@ -102,8 +102,9 @@ class DemoVideoPlayer:
         final_x = int(corner_x + (zoomed_x - corner_x) * self.video_intro_zoom)
         final_y = int(corner_y + (zoomed_y - corner_y) * self.video_intro_zoom)
 
-        # Resize and convert
+        # Resize, mirror, and convert
         d_frame = cv2.resize(d_frame, (final_width, final_height))
+        d_frame = cv2.flip(d_frame, 1)
         d_rgb = cv2.cvtColor(d_frame, cv2.COLOR_BGR2RGB)
         d_surf = pygame.image.frombuffer(d_rgb.tobytes(), (final_width, final_height), "RGB")
 
