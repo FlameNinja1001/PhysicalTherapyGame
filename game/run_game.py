@@ -113,7 +113,7 @@ def main():
     # Initialize audio manager
     audio = get_audio_manager()
 
-    pygame.display.set_caption("Physio Hero: Healthcare Hero")
+    pygame.display.set_caption("Physio Hero")
     screen = pygame.display.set_mode((theme.WIDTH, theme.HEIGHT))
 
     manager = SceneManager(screen)

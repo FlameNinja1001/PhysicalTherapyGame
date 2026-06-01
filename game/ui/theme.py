@@ -1,5 +1,7 @@
 import pygame
 
+from game.core.paths import resource_path
+
 # Colors
 BACKGROUND = (5, 5, 10)  # Deep black
 ACCENT     = (230, 30, 50)  # Vibrant red
@@ -25,8 +27,8 @@ FONTS = {
 
 def init():
     # Load Exo.ttf for main fonts
-    exo_font_path = "game/data/Exo-Medium.ttf"
-    exo_bold_font_path = "game/data/Exo-Bold.ttf"
+    exo_font_path = resource_path("game/data/Exo-Medium.ttf")
+    exo_bold_font_path = resource_path("game/data/Exo-Bold.ttf")
     emoji_font = "Segoe UI Emoji,Apple Color Emoji,Noto Color Emoji,Symbola,DejaVu Sans"
 
     try:

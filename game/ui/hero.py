@@ -1,5 +1,6 @@
 """Animated hero character using spritesheet."""
 import pygame
+from game.core.paths import resource_path
 from game.core.spritesheet import Spritesheet, AnimatedSprite
 
 
@@ -21,7 +22,7 @@ class Hero(AnimatedSprite):
         super().__init__(x, y)
 
         try:
-            sheet = Spritesheet('game/data/hero_title_spritesheet.png')
+            sheet = Spritesheet(resource_path('game/data/hero_title_spritesheet.png'))
             frames = sheet.get_sprites_grid(
                 sprite_width, sprite_height,
                 columns, rows,
@@ -116,7 +117,7 @@ def create_game_hero(x, y, animation_type="jump"):
     sprite = AnimatedSprite(x, y)
 
     try:
-        sheet = Spritesheet('game/data/hero_spritesheet.png')
+        sheet = Spritesheet(resource_path('game/data/hero_spritesheet.png'))
 
         # Spritesheet is 512x512 per frame, 20 columns x 19 rows = 380 total frames
         sprite_width = 512

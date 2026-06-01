@@ -3,6 +3,7 @@ from game.scenes.base_scene import BaseScene
 from game.ui import theme, particles, paint_effects, hero
 from game.core.navigation import SceneNavigator
 from game.core.audio_manager import get_audio_manager
+from game.core.paths import resource_path
 
 class HowToPlayScene(BaseScene):
     def __init__(self, screen, menu_hero=None):
@@ -21,7 +22,7 @@ class HowToPlayScene(BaseScene):
 
         # Load how to play logo/title if available
         try:
-            logo_orig = pygame.image.load('game/data/how_to_play.png').convert_alpha()
+            logo_orig = pygame.image.load(resource_path('game/data/how_to_play.png')).convert_alpha()
             target_w = 700
             ratio = target_w / logo_orig.get_width()
             target_h = int(logo_orig.get_height() * ratio)

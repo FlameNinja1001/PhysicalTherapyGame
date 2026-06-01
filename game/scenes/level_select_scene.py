@@ -5,6 +5,7 @@ from game.scenes.base_scene import BaseScene
 from game.ui import theme, particles, hero, level_card_menu, paint_effects
 from game.core.navigation import SceneNavigator
 from game.core.audio_manager import get_audio_manager
+from game.core.paths import resource_path
 
 class LevelSelectScene(BaseScene):
     def __init__(self, screen, menu_hero=None):
@@ -22,8 +23,8 @@ class LevelSelectScene(BaseScene):
 
         # Load groups
         # Ensure path is correct relative to workspace root
-        path = os.path.join(os.getcwd(), 'game', 'data', 'exercise_groups.json')
-        with open(path, 'r') as f:
+        path = resource_path(os.path.join('game', 'data', 'exercise_groups.json'))
+        with open(path, 'r', encoding="utf-8") as f:
             data = json.load(f)
 
         self.menu = level_card_menu.LevelCardMenu(data['groups'], 550, 200)
@@ -44,7 +45,7 @@ class LevelSelectScene(BaseScene):
 
         # Load logo
         try:
-            logo_orig = pygame.image.load('game/data/mission_select.png').convert_alpha()
+            logo_orig = pygame.image.load(resource_path('game/data/mission_select.png')).convert_alpha()
             target_w = 700
             ratio = target_w / logo_orig.get_width()
             target_h = int(logo_orig.get_height() * ratio)
@@ -75,7 +76,7 @@ class LevelSelectScene(BaseScene):
         self.audio.play_sfx('choose')
         self.audio.play_sfx('start_mission')
         group = self.menu.get_selected_group()
-        paths = [os.path.join('training_data', e) for e in group['exercises']]
+        paths = [resource_path(os.path.join('training_data', e)) for e in group['exercises']]
         self.next_scene = SceneNavigator.create_game(self.screen, template_paths=paths)
 
     def on_enter(self):

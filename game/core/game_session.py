@@ -2,6 +2,7 @@
 import cv2
 import esper
 import glob
+from game.core.paths import resource_path
 from game.components.camera import CameraFrameComponent
 from game.components.pose import PoseLandmarksComponent, JointAnglesComponent
 from game.components.exercise import ExerciseComponent, RepStateComponent
@@ -45,7 +46,7 @@ class GameSession:
         self.audio = audio_manager
 
         # Load templates
-        self.templates = template_paths if template_paths else sorted(glob.glob('training_data/*.npz'))
+        self.templates = template_paths if template_paths else sorted(glob.glob(resource_path('training_data/*.npz')))
 
         # Initialize hardware in background
         self._init_camera()

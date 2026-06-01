@@ -2,6 +2,7 @@ import pygame
 import math
 import random
 from game.ui import theme, animations, hero, dynamic_camera
+from game.core.paths import resource_path
 
 class PlatformerMinigame:
     def __init__(self, screen, x, y, width, height):
@@ -10,7 +11,7 @@ class PlatformerMinigame:
 
         # Load cloud sprite and scale to reasonable size while preserving aspect ratio
         try:
-            cloud_orig = pygame.image.load('game/data/cloud.png').convert_alpha()
+            cloud_orig = pygame.image.load(resource_path('game/data/cloud.png')).convert_alpha()
             # Scale down to 1/4 size (1024x452 -> 256x113) preserving aspect ratio
             cloud_scale = 0.25  # Scale factor
             target_width = int(cloud_orig.get_width() * cloud_scale)

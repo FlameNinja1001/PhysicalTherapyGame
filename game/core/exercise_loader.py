@@ -25,7 +25,7 @@ class ExerciseLoader:
         # Load config if exists
         conf_path = path + '.json'
         if os.path.exists(conf_path):
-            with open(conf_path, 'r') as f:
+            with open(conf_path, 'r', encoding="utf-8") as f:
                 c = json.load(f)
                 ex.dev_thresh = c.get('dev', 35.0)
                 ex.prog_start_thresh = c.get('start', 0.25)

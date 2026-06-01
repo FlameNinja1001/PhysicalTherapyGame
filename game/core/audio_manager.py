@@ -3,6 +3,7 @@ import pygame
 import os
 import numpy as np
 from pygame import sndarray
+from game.core.paths import resource_path
 
 
 class AudioManager:
@@ -86,11 +87,11 @@ class AudioManager:
 
         # Load music tracks
         music_files = {
-            'title': 'game/data/music/title.mp3',
-            'cloud': 'game/data/music/cloud.mp3',
-            'jungle': 'game/data/music/jungle.mp3',
-            'water': 'game/data/music/water.mp3',
-            'victory': 'game/data/music/VictoryMusic.mp3'
+            'title': resource_path('game/data/music/title.mp3'),
+            'cloud': resource_path('game/data/music/cloud.mp3'),
+            'jungle': resource_path('game/data/music/jungle.mp3'),
+            'water': resource_path('game/data/music/water.mp3'),
+            'victory': resource_path('game/data/music/VictoryMusic.mp3')
         }
 
         for name, path in music_files.items():
@@ -102,12 +103,12 @@ class AudioManager:
 
         # Load sound effects
         sfx_files = {
-            'choose': 'game/data/sfx/sfx_choose.mp3',
-            'select': 'game/data/sfx/sfx_select.mp3',
-            'start_mission': 'game/data/sfx/sfx_StartMission.mp3',
-            'video_popup': 'game/data/sfx/sfx_VideoPopup.mp3',
-            'mission_complete': 'game/data/sfx/sfx_MissionComplete.mp3',
-            'rep': 'game/data/sfx/sfx_rep.mp3'
+            'choose': resource_path('game/data/sfx/sfx_choose.mp3'),
+            'select': resource_path('game/data/sfx/sfx_select.mp3'),
+            'start_mission': resource_path('game/data/sfx/sfx_StartMission.mp3'),
+            'video_popup': resource_path('game/data/sfx/sfx_VideoPopup.mp3'),
+            'mission_complete': resource_path('game/data/sfx/sfx_MissionComplete.mp3'),
+            'rep': resource_path('game/data/sfx/sfx_rep.mp3')
         }
 
         for name, path in sfx_files.items():
@@ -126,18 +127,18 @@ class AudioManager:
 
         # Load voice clips
         voice_files = {
-            'welcome': 'game/data/voice/Welcome.wav',
-            'mission_select': 'game/data/voice/MissionSelect.wav',
-            'complete': 'game/data/voice/Complete.wav',
-            'clap': 'game/data/voice/Clap.wav',
-            'lateral_arm': 'game/data/voice/LateralArm.wav',
-            'lateral_hip': 'game/data/voice/LateralHip.wav',
-            'lateral_lunge': 'game/data/voice/LateralLunge.wav',
-            'parallel_arm': 'game/data/voice/ParallelArm.wav',
-            'right_bend': 'game/data/voice/RightBend.wav',
-            'right_lunge': 'game/data/voice/RightLunge.wav',
-            'squat': 'game/data/voice/Squat.wav',
-            'toe_touch': 'game/data/voice/ToeTouch.wav'
+            'welcome': resource_path('game/data/voice/Welcome.wav'),
+            'mission_select': resource_path('game/data/voice/MissionSelect.wav'),
+            'complete': resource_path('game/data/voice/Complete.wav'),
+            'clap': resource_path('game/data/voice/Clap.wav'),
+            'lateral_arm': resource_path('game/data/voice/LateralArm.wav'),
+            'lateral_hip': resource_path('game/data/voice/LateralHip.wav'),
+            'lateral_lunge': resource_path('game/data/voice/LateralLunge.wav'),
+            'parallel_arm': resource_path('game/data/voice/ParallelArm.wav'),
+            'right_bend': resource_path('game/data/voice/RightBend.wav'),
+            'right_lunge': resource_path('game/data/voice/RightLunge.wav'),
+            'squat': resource_path('game/data/voice/Squat.wav'),
+            'toe_touch': resource_path('game/data/voice/ToeTouch.wav')
         }
 
         for name, path in voice_files.items():

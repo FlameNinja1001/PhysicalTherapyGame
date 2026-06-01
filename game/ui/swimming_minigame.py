@@ -3,6 +3,7 @@ import pygame
 import math
 from game.ui import theme, hero, dynamic_camera
 from game.core.spritesheet import Spritesheet
+from game.core.paths import resource_path
 
 class SwimmingMinigame:
     """Player swims continuously, dashing forward on each rep."""
@@ -49,7 +50,7 @@ class SwimmingMinigame:
 
         # Load ocean water animation (39 frames, 20 columns, 2 rows)
         try:
-            ocean_sheet = Spritesheet('game/data/ocean_spritesheet.png')
+            ocean_sheet = Spritesheet(resource_path('game/data/ocean_spritesheet.png'))
             # Get first frame to determine sprite size
             sheet_width = ocean_sheet.sheet.get_width()
             sheet_height = ocean_sheet.sheet.get_height()
@@ -70,7 +71,7 @@ class SwimmingMinigame:
 
         # Load ocean gradient overlay
         try:
-            self.ocean_gradient = pygame.image.load('game/data/ocean_gradient.png').convert_alpha()
+            self.ocean_gradient = pygame.image.load(resource_path('game/data/ocean_gradient.png')).convert_alpha()
             print(f"Ocean gradient loaded: {self.ocean_gradient.get_width()}x{self.ocean_gradient.get_height()}")
         except Exception as e:
             print(f"Warning: Could not load ocean gradient: {e}")

@@ -3,6 +3,7 @@ import cv2
 import pygame
 import os
 from game.ui import theme, shapes
+from game.core.paths import resource_path
 
 
 class DemoVideoPlayer:
@@ -22,7 +23,7 @@ class DemoVideoPlayer:
     def get_demo_path(self, exercise_name):
         """Get the video path for an exercise template."""
         video_name = os.path.basename(exercise_name).replace('.npz', '.mov')
-        path = os.path.join('training_data', 'videos', video_name)
+        path = resource_path(os.path.join('training_data', 'videos', video_name))
         if os.path.exists(path):
             return path
         return ""

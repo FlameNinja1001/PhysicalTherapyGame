@@ -4,6 +4,7 @@ from game.scenes.base_scene import BaseScene
 from game.ui import theme, particles, persona_menu, paint_effects, animations, hero
 from game.core.navigation import SceneNavigator
 from game.core.audio_manager import get_audio_manager
+from game.core.paths import resource_path
 
 class MainMenuScene(BaseScene):
     def __init__(self, screen, menu_hero=None):
@@ -36,7 +37,7 @@ class MainMenuScene(BaseScene):
 
         # Load logo
         try:
-            logo_orig = pygame.image.load('game/data/logo.png').convert_alpha()
+            logo_orig = pygame.image.load(resource_path('game/data/logo.png')).convert_alpha()
             # Scale logo to a reasonable width (e.g., 400px) while maintaining aspect ratio
             target_w = 700
             ratio = target_w / logo_orig.get_width()

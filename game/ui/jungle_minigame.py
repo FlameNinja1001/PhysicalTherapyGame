@@ -3,6 +3,7 @@ import pygame
 import math
 import random
 from game.ui import theme, animations, hero, dynamic_camera
+from game.core.paths import resource_path
 
 
 class JungleMinigame:
@@ -16,9 +17,9 @@ class JungleMinigame:
         scale_factor = 0.25  # Scale down to 128px from 512px
         leaves_scale_factor = 0.5  # Leaves are bigger - 180px
 
-        trunk_base_orig = pygame.image.load('game/data/trunk_base.png').convert_alpha()
-        trunk_orig = pygame.image.load('game/data/trunk.png').convert_alpha()
-        leaves_orig = pygame.image.load('game/data/leaves.png').convert_alpha()
+        trunk_base_orig = pygame.image.load(resource_path('game/data/trunk_base.png')).convert_alpha()
+        trunk_orig = pygame.image.load(resource_path('game/data/trunk.png')).convert_alpha()
+        leaves_orig = pygame.image.load(resource_path('game/data/leaves.png')).convert_alpha()
 
         trunk_size = int(512 * scale_factor)
         leaves_size = int(512 * leaves_scale_factor)
