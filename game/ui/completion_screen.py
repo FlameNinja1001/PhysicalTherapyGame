@@ -85,9 +85,6 @@ class CompletionScreen:
         # Big tilted "MISSION COMPLETE" on LEFT
         self._draw_tilted_title()
 
-        # Score with starburst on right side
-        self._draw_score_starburst()
-
         # Menu items on right side
         self._draw_menu_items()
 
@@ -151,94 +148,58 @@ class CompletionScreen:
         """Draw big tilted MISSION COMPLETE on the left."""
         if self.title_x.value > -700:
             # Create huge text
-            title_font = pygame.font.SysFont("Arial", 110, bold=True)
+            title_font = pygame.font.SysFont("Arial", 130, bold=True)
             title_text = "MISSION"
             complete_text = "COMPLETE"
 
-            # Render both lines
+            # Position on left side
+            x_pos = int(self.title_x.value) - 100
+            y_pos = 180
+
+            # Draw huge shadow strips behind text for better P5 look
+            sw, sh = self.screen.get_size()
+            strip_y = y_pos + 50
+            strip_points = [
+                (x_pos - 100, strip_y),
+                (x_pos + 750, strip_y - 120),
+                (x_pos + 780, strip_y + 180),
+                (x_pos - 70, strip_y + 300)
+            ]
+            pygame.draw.polygon(self.screen, (0, 0, 0, 180), strip_points)
+
+            # Render and Rotate
             title_surf = title_font.render(title_text, True, theme.WHITE)
             complete_surf = title_font.render(complete_text, True, theme.WHITE)
 
-            # Rotate them
             title_surf = pygame.transform.rotate(title_surf, self.title_rotation)
             complete_surf = pygame.transform.rotate(complete_surf, self.title_rotation)
 
-            # Position on left side
-            x_pos = int(self.title_x.value)
-            y_pos = 200
+            # Shadow for text
+            shadow_color = (40, 0, 0)
+            s_title = title_font.render(title_text, True, shadow_color)
+            s_complete = title_font.render(complete_text, True, shadow_color)
+            s_title = pygame.transform.rotate(s_title, self.title_rotation)
+            s_complete = pygame.transform.rotate(s_complete, self.title_rotation)
 
-            # Draw shadow for depth
-            shadow_surf1 = title_font.render(title_text, True, (20, 20, 20))
-            shadow_surf2 = title_font.render(complete_text, True, (20, 20, 20))
-            shadow_surf1 = pygame.transform.rotate(shadow_surf1, self.title_rotation)
-            shadow_surf2 = pygame.transform.rotate(shadow_surf2, self.title_rotation)
-
-            self.screen.blit(shadow_surf1, (x_pos + 5, y_pos + 5))
-            self.screen.blit(shadow_surf2, (x_pos + 25, y_pos + 125))
+            self.screen.blit(s_title, (x_pos + 12, y_pos + 12))
+            self.screen.blit(s_complete, (x_pos + 32, y_pos + 152))
 
             self.screen.blit(title_surf, (x_pos, y_pos))
-            self.screen.blit(complete_surf, (x_pos + 20, y_pos + 120))
-
-            # Add underline strip if animation finished
-            if self.title_x.finished:
-                strip_points = [
-                    (x_pos, y_pos + 240),
-                    (x_pos + 500, y_pos + 220),
-                    (x_pos + 510, y_pos + 235),
-                    (x_pos + 10, y_pos + 255)
-                ]
-                pygame.draw.polygon(self.screen, theme.ACCENT, strip_points)
-
-    def _draw_score_starburst(self):
-        """Draw score with spiky starburst background (P5 style)."""
-        if self.score_scale.value > 0.1:
-            sw, sh = self.screen.get_size()
-            center_x = sw - 250
-            center_y = 200
-
-            scale = self.score_scale.value
-
-            # Draw starburst spikes
-            if scale > 0.5:
-                num_spikes = 12
-                inner_radius = 50 * scale
-                outer_radius = 90 * scale
-
-                points = []
-                for i in range(num_spikes * 2):
-                    angle = (i * math.pi / num_spikes) + self.starburst_rotation
-                    radius = outer_radius if i % 2 == 0 else inner_radius
-                    x = center_x + int(math.cos(angle) * radius)
-                    y = center_y + int(math.sin(angle) * radius)
-                    points.append((x, y))
-
-                # Draw filled starburst
-                pygame.draw.polygon(self.screen, theme.BLACK, points)
-                pygame.draw.polygon(self.screen, theme.WHITE, points, 3)
-
-            # Score text
-            score_font = pygame.font.SysFont("Arial", 50, bold=True)
-            score_text = f"{self.score}"
-            score_surf = score_font.render(score_text, True, theme.YELLOW)
-
-            if scale < 1.0:
-                w, h = score_surf.get_size()
-                score_surf = pygame.transform.smoothscale(score_surf, (int(w * scale), int(h * scale)))
-
-            score_rect = score_surf.get_rect(center=(center_x, center_y - 20))
-            self.screen.blit(score_surf, score_rect)
-
-            # "FINAL SCORE" label above
-            label_font = theme.FONTS['body']
-            label_surf = label_font.render("FINAL SCORE", True, theme.WHITE)
-            label_rect = label_surf.get_rect(center=(center_x, center_y + 40))
-            self.screen.blit(label_surf, label_rect)
+            self.screen.blit(complete_surf, (x_pos + 20, y_pos + 140))
 
     def _draw_menu_items(self):
-        """Draw menu items on right side with tilt."""
+        """Draw menu items on right side with tilt and staggered black parallelograms."""
         if self.menu_x.value < theme.WIDTH + 300:
             base_x = int(self.menu_x.value)
             start_y = 400
+
+            # Draw staggered black background parallelograms FIRST for all items
+            for i in range(len(self.options)):
+                opt_y = start_y + i * 85
+                # Stagger effect: offset every other parallelogram
+                stagger_x = (i % 2) * 30
+                bg_rect = pygame.Rect(base_x - 100 + stagger_x, opt_y - 10, 500, 70)
+                shapes.draw_parallelogram(self.screen, bg_rect, theme.BLACK, 255, -15)
 
             for i, opt in enumerate(self.options):
                 is_sel = i == self.selected_idx
@@ -252,15 +213,14 @@ class CompletionScreen:
                 tilt_angle = -5 if is_sel else -3
                 opt_surf = pygame.transform.rotate(opt_surf, tilt_angle)
 
-                # Selection background
+                # Selection effect
                 if is_sel:
                     glow = max(0, min(255, int(animations.oscillate(self.pulse_time, 40, 2.5, 255))))
                     glow_color = (int(glow), int(glow // 4), int(glow // 4))
 
-                    # Parallelogram behind selected
+                    # Selection highlight
                     sel_rect = pygame.Rect(base_x - 20, opt_y - 15, 280, 65)
-                    shapes.draw_parallelogram(self.screen, sel_rect, glow_color, 80, -15)
-                    shapes.draw_parallelogram(self.screen, sel_rect, theme.ACCENT, 200, -15)
+                    shapes.draw_parallelogram(self.screen, sel_rect, glow_color, 120, -15)
                     shapes.draw_parallelogram_outline(self.screen, sel_rect, theme.WHITE, 3, -15)
 
                     # Cyan triangle accent

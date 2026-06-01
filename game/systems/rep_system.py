@@ -5,6 +5,10 @@ from game.components.exercise import ExerciseComponent, RepStateComponent
 from game.components.game_state import GameStateComponent
 
 class RepDetectionSystem(esper.Processor):
+    def __init__(self, audio_manager=None):
+        super().__init__()
+        self.audio = audio_manager
+
     def process(self, dt=0.016):
         for ent, (angles, ex, rep, state) in esper.get_components(
                 JointAnglesComponent, ExerciseComponent, RepStateComponent, GameStateComponent):
@@ -42,8 +46,15 @@ class RepDetectionSystem(esper.Processor):
                 elif rep.phase == 2:
                     rep.state_msg = "COME UP"
                     if rep.progress < ex.prog_start_thresh:
-                        # Only count rep if below target
-                        if rep.rep_count < state.target_reps:
-                            rep.rep_count += 1
-                            state.events.append("REP_COMPLETE")  # Signal to game logic
-                        rep.phase = 1
+                        # Only count rep if below target and not locked
+                        if not rep.is_locked:
+                            if rep.rep_count < state.target_reps:
+                                rep.rep_count += 1
+                                state.events.append("REP_COMPLETE")  # Signal to game logic
+                                # Play rep sound effect
+                                if self.audio:
+                                    self.audio.play_sfx('rep')
+                            rep.phase = 1
+                        else:
+                            # If locked, stay in phase 2 until unlocked, but user reached start
+                            rep.state_msg = "WAIT FOR MINIGAME"

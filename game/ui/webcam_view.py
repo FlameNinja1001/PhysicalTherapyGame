@@ -31,7 +31,7 @@ class WebcamView:
             except:
                 pass
 
-    def draw(self, frame, landmarks=None, target_rect=None):
+    def draw(self, frame, landmarks=None, target_rect=None, is_locked=False):
         """
         Draw the webcam frame to screen, optionally with skeleton overlay.
 
@@ -39,6 +39,7 @@ class WebcamView:
             frame: OpenCV BGR frame from camera
             landmarks: Optional pose landmarks to draw skeleton
             target_rect: Optional pygame.Rect for where to draw (defaults to left half of screen)
+            is_locked: If true, darken frame and show "PLEASE WAIT"
         """
         if frame is None:
             return
@@ -86,3 +87,20 @@ class WebcamView:
         cropped_surface = cam_surface.subsurface(pygame.Rect(src_x, src_y, src_w, src_h))
         scaled_cam = pygame.transform.smoothscale(cropped_surface, (target_w, target_h))
         self.screen.blit(scaled_cam, (target_rect.x, target_rect.y))
+
+        # Apply darkening and "Please Wait" if locked
+        if is_locked:
+            overlay = pygame.Surface((target_w, target_h), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 120))  # Semi-transparent black
+            self.screen.blit(overlay, (target_rect.x, target_rect.y))
+
+            import math
+            from game.ui import theme
+            wait_font = theme.FONTS['title']
+            txt = wait_font.render("PLEASE WAIT", True, theme.WHITE)
+            txt_rect = txt.get_rect(center=(target_rect.centerx, target_rect.centery - 200))
+
+            # Subtle pulse effect
+            alpha = int(155 + 100 * math.sin(pygame.time.get_ticks() * 0.005))
+            txt.set_alpha(alpha)
+            self.screen.blit(txt, txt_rect)

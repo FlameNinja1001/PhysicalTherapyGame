@@ -228,26 +228,34 @@ class JungleMinigame:
         self.hero_sprite.scale = 0.25 * zoom  # Scale hero with zoom
         self.hero_sprite.draw(self.screen)
 
-        # Progress text
-        progress_text = f"Tree {self.current_tree + 1}/{len(self.trees)}"
-        text_surf = theme.FONTS['body'].render(progress_text, True, theme.WHITE)
-        self.screen.blit(text_surf, (self.rect.x + 10, self.rect.y + 10))
-
         # Reset clipping
         self.screen.set_clip(None)
 
     def _draw_gradient_background(self):
-        """Draw a gradient green background from light to dark."""
-        # Light green at top, darker at bottom
-        top_color = (100, 200, 120)
-        bottom_color = (20, 80, 40)
+        """Draw an orange/yellow sunset gradient background."""
+        # Warm sunset colors: Deep orange at top, bright yellow at bottom
+        colors = [
+            (40, 20, 80),   # Deep purple (top)
+            (120, 40, 60),  # Magenta/Red
+            (255, 100, 50), # Orange
+            (255, 180, 80)  # Golden yellow (bottom)
+        ]
 
-        num_steps = 50
+        num_steps = 60
         for i in range(num_steps):
-            t = i / num_steps
-            r = int(top_color[0] + (bottom_color[0] - top_color[0]) * t)
-            g = int(top_color[1] + (bottom_color[1] - top_color[1]) * t)
-            b = int(top_color[2] + (bottom_color[2] - top_color[2]) * t)
+            t = i / (num_steps - 1)
+
+            # Find which two colors to interpolate between
+            num_segments = len(colors) - 1
+            seg_idx = min(int(t * num_segments), num_segments - 1)
+            seg_t = (t * num_segments) - seg_idx
+
+            c1 = colors[seg_idx]
+            c2 = colors[seg_idx + 1]
+
+            r = int(c1[0] + (c2[0] - c1[0]) * seg_t)
+            g = int(c1[1] + (c2[1] - c1[1]) * seg_t)
+            b = int(c1[2] + (c2[2] - c1[2]) * seg_t)
 
             y = self.rect.y + int(i * self.rect.height / num_steps)
             height = int(self.rect.height / num_steps) + 1

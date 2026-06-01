@@ -15,9 +15,9 @@ class SceneNavigator:
         return LevelSelectScene(screen, menu_hero)
 
     @staticmethod
-    def create_exercise_select(screen):
-        from game.scenes.exercise_select_scene import ExerciseSelectScene
-        return ExerciseSelectScene(screen)
+    def create_how_to_play(screen, menu_hero=None):
+        from game.scenes.how_to_play_scene import HowToPlayScene
+        return HowToPlayScene(screen, menu_hero)
 
     @staticmethod
     def create_game(screen, template_paths=None):

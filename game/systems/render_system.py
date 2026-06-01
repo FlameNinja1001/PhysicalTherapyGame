@@ -1,4 +1,5 @@
 import esper
+import random
 import os
 import pygame
 from game.components.camera import CameraFrameComponent
@@ -7,6 +8,17 @@ from game.components.exercise import ExerciseComponent, RepStateComponent
 from game.components.game_state import GameStateComponent
 from game.ui import theme, game_hud, platformer, webcam_view, demo_video_player, jungle_minigame, swimming_minigame
 
+NICE_MESSAGES = [
+    "Nice!",
+    "Excellent!",
+    "Beautiful!",
+    "Brilliant!",
+    "Great!",
+    "Awesome!",
+    "Good!",
+    "Groovy!",
+    "Sweet!"
+]
 
 class RenderSystem(esper.Processor):
     """Orchestrates rendering of all game UI components."""
@@ -95,7 +107,7 @@ class RenderSystem(esper.Processor):
 
             # Check for new rep feedback
             if rep.rep_count > self.last_rep_count:
-                self.hud.set_feedback("NICE!", theme.ACCENT)
+                self.hud.set_feedback(random.choice(NICE_MESSAGES).upper(), theme.ACCENT)
                 self.last_rep_count = rep.rep_count
             elif rep.deviation > ex.dev_thresh and rep.progress > 0.1:
                 # TODO: recurring feedback for poor form
@@ -105,7 +117,7 @@ class RenderSystem(esper.Processor):
             self.screen.fill(theme.BACKGROUND)
 
             # Draw components in layers
-            self.webcam_view.draw(cam.frame, pose.landmarks)
+            self.webcam_view.draw(cam.frame, pose.landmarks, is_locked=rep.is_locked)
             if self.minigame:
                 self.minigame.draw()
             self.demo_player.draw()

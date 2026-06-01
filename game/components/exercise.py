@@ -20,3 +20,4 @@ class RepStateComponent:
     progress: float = 0.0
     deviation: float = 0.0
     state_msg: str = "NO TEMPLATE"
+    is_locked: bool = False  # If true, reps won't count (waiting for animation)

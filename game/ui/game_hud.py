@@ -60,30 +60,6 @@ class GameHUD:
         self.screen.blit(rep_txt, (badge_x + 40, badge_y + 10))
         self.screen.blit(slash_txt, (badge_x + 50, badge_y + 80))
 
-        # # 3. Progress Bar (Vertical Segments next to minigame)
-        # bar_x, bar_y = sw // 2 + 10, sh // 2 - 200
-        # bar_w, bar_h = 12, 400
-
-        # # Background segments
-        # num_segments = 10
-        # seg_w = bar_w // num_segments
-        # for i in range(num_segments):
-        #     seg_rect = pygame.Rect(bar_x + i * seg_w + 2, bar_y, seg_w - 4, bar_h)
-        #     shapes.draw_parallelogram(self.screen, seg_rect, (30, 35, 45), 255, 15)
-
-        #     # Fill segments
-        #     if rep.progress > (i / num_segments):
-        #         fill_color = theme.ACCENT if rep.deviation < ex.dev_thresh else theme.RED
-        #         shapes.draw_parallelogram(self.screen, seg_rect, fill_color, 255, 15)
-
-        # 4. Score Badge (Top Right - More angled) - Dynamic width
-        score_val = f"SCORE {state.score:05d}"
-        score_txt = theme.FONTS['body'].render(score_val, True, theme.BLACK)
-        score_w = score_txt.get_width() + 80  # Add padding
-        score_bg = pygame.Rect(sw - score_w - 20, 20, score_w, 45)
-        shapes.draw_parallelogram(self.screen, score_bg, theme.ACCENT, 255, -20)
-        self.screen.blit(score_txt, (score_bg.x + 40, score_bg.y + 10))
-
         # 4b. Progress Badge (Below Score - Cyan accent) - Dynamic label and width
         if total_height > 0:
             # Choose label based on minigame type
@@ -95,7 +71,7 @@ class GameHUD:
             progress_val = f"{progress_label} {int(total_height)}m"
             progress_txt = theme.FONTS['body'].render(progress_val, True, theme.BLACK)
             progress_w = progress_txt.get_width() + 80  # Add padding
-            progress_bg = pygame.Rect(sw - progress_w - 20, 75, progress_w, 45)
+            progress_bg = pygame.Rect(sw - progress_w - 20, 20, progress_w, 45)
             shapes.draw_parallelogram(self.screen, progress_bg, theme.ACCENT_SECONDARY, 255, -20)
             self.screen.blit(progress_txt, (progress_bg.x + 40, progress_bg.y + 10))
 

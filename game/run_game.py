@@ -4,6 +4,7 @@ import esper
 from game.ui import theme
 from game.scenes.main_menu_scene import MainMenuScene
 from game.systems.render_system import RenderSystem
+from game.core.audio_manager import get_audio_manager
 
 TARGET_FPS = 60
 MAX_DT = 0.1  # Cap dt at 100ms to prevent huge jumps during lag
@@ -15,6 +16,9 @@ class SceneManager:
         self.running = True
         self.fullscreen = False
         self.windowed_size = (theme.WIDTH, theme.HEIGHT)
+
+        # Call on_enter for the initial scene
+        self.scene.on_enter()
 
     def toggle_fullscreen(self):
         if not self.fullscreen:
@@ -105,6 +109,9 @@ class SceneManager:
 def main():
     pygame.init()
     theme.init()
+
+    # Initialize audio manager
+    audio = get_audio_manager()
 
     pygame.display.set_caption("Physio Hero: Healthcare Hero")
     screen = pygame.display.set_mode((theme.WIDTH, theme.HEIGHT))
