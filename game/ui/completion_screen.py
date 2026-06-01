@@ -6,7 +6,7 @@ class CompletionScreen:
     def __init__(self, screen, score):
         self.screen = screen
         self.score = score
-        self.options = ["RESTART", "MISSIONS", "MAIN MENU"]
+        self.options = ["MISSIONS", "MAIN MENU"]
         self.selected_idx = 0
         self.finished = False
 
@@ -36,9 +36,41 @@ class CompletionScreen:
 
         # Pulse animation for selection
         self.pulse_time = 0
+        self.mouse_active = True
 
     def handle_event(self, event):
+        # Handle Mouse Motion
+        if event.type == pygame.MOUSEMOTION:
+            rel = event.rel
+            if abs(rel[0]) > 2 or abs(rel[1]) > 2:
+                self.mouse_active = True
+                pygame.mouse.set_visible(True)
+
+        # Handle Mouse Events
+        if self.mouse_active:
+            mouse_pos = pygame.mouse.get_pos()
+            base_x = int(self.menu_x.value)
+            start_y = 400
+
+            for i in range(len(self.options)):
+                opt_y = start_y + i * 85
+                # Simplified click/hover area
+                menu_rect = pygame.Rect(base_x - 100, opt_y, 400, 70)
+                if menu_rect.collidepoint(mouse_pos):
+                    if self.selected_idx != i:
+                        self.selected_idx = i
+                        from game.core.audio_manager import get_audio_manager
+                        get_audio_manager().play_sfx('select')
+
+                    if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                        self.finished = True
+                        return self.options[i]
+
         if event.type == pygame.KEYDOWN:
+            # Key priority: disable mouse
+            self.mouse_active = False
+            pygame.mouse.set_visible(False)
+
             if event.key == pygame.K_UP:
                 self.selected_idx = (self.selected_idx - 1) % len(self.options)
             elif event.key == pygame.K_DOWN:

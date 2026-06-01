@@ -63,9 +63,13 @@ class LevelSelectScene(BaseScene):
                 self.audio.play_sfx('select')
             elif event.key == pygame.K_RETURN:
                 self.start_level()
-            elif event.key == pygame.K_ESCAPE:
-                self.audio.play_sfx('choose')
-                self.next_scene = SceneNavigator.create_main_menu(self.screen, self.hero)
+
+        # Handle Mouse Events
+        if self.menu.handle_event(event):
+            self.start_level()
+        elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+            self.audio.play_sfx('choose')
+            self.next_scene = SceneNavigator.create_main_menu(self.screen, self.hero)
 
     def start_level(self):
         self.audio.play_sfx('choose')

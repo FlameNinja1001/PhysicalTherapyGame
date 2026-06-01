@@ -74,6 +74,11 @@ class MainMenuScene(BaseScene):
             elif event.key == pygame.K_RETURN:
                 self.select_option()
 
+        # Handle Mouse Events
+        choice = self.menu.handle_event(event)
+        if choice:
+            self.select_option()
+
     def select_option(self):
         self.audio.play_sfx('choose')
         choice = self.menu.items[self.menu.selected_idx]

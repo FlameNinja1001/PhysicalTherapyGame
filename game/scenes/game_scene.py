@@ -27,9 +27,7 @@ class GameScene(BaseScene):
     def handle_event(self, event):
         if self.completion_ui:
             result = self.completion_ui.handle_event(event)
-            if result == "RESTART":
-                self.next_scene = SceneNavigator.create_game(self.screen, self.session.templates)
-            elif result == "MISSIONS":
+            if result == "MISSIONS":
                 self.next_scene = SceneNavigator.create_level_select(self.screen)
             elif result == "MAIN MENU":
                 self.next_scene = SceneNavigator.create_main_menu(self.screen)
@@ -39,14 +37,14 @@ class GameScene(BaseScene):
             if event.key == pygame.K_ESCAPE:
                 self.next_scene = SceneNavigator.create_main_menu(self.screen)
 
-            # Debug hotkey: UP ARROW to simulate a rep
-            elif event.key == pygame.K_UP:
-                rep_state = self.session.get_rep_state()
-                game_state = self.session.get_state()
-                if rep_state and game_state:
-                    rep_state.rep_count += 1
-                    self.audio.play_sfx('rep')
-                    print(f"[DEBUG] Rep simulated! Count: {rep_state.rep_count}/{game_state.target_reps}")
+            # # Debug hotkey: UP ARROW to simulate a rep
+            # elif event.key == pygame.K_UP:
+            #     rep_state = self.session.get_rep_state()
+            #     game_state = self.session.get_state()
+            #     if rep_state and game_state:
+            #         rep_state.rep_count += 1
+            #         self.audio.play_sfx('rep')
+            #         print(f"[DEBUG] Rep simulated! Count: {rep_state.rep_count}/{game_state.target_reps}")
 
             # Debug hotkey: C to trigger mission complete screen
             elif event.key == pygame.K_c:

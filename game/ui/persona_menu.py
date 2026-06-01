@@ -22,8 +22,22 @@ class PersonaMenu:
         self.splatter_target_y = y
         # Create multiple splatters for more dramatic effect
         self.active_splatters = []
+        self.mouse_active = True
 
     def update(self, dt):
+        # Handle Mouse Hover
+        if self.mouse_active:
+            mouse_pos = pygame.mouse.get_pos()
+            for i in range(len(self.items)):
+                item_y = self.y + (i * self.item_height)
+                item_rect = pygame.Rect(self.x - self.offset_left, item_y, self.width + self.offset_left, self.item_height)
+                if item_rect.collidepoint(mouse_pos):
+                    if self.selected_idx != i:
+                        self.selected_idx = i
+                        from game.core.audio_manager import get_audio_manager
+                        get_audio_manager().play_sfx('select')
+                    break
+
         # Smoothly slide selector with more snap
         self.target_y = self.y + (self.selected_idx * self.item_height)
         self.selector_y += (self.target_y - self.selector_y) * 20 * dt
@@ -114,6 +128,34 @@ class PersonaMenu:
 
     def next(self):
         self.selected_idx = (self.selected_idx + 1) % len(self.items)
+        self._disable_mouse()
 
     def prev(self):
         self.selected_idx = (self.selected_idx - 1) % len(self.items)
+        self._disable_mouse()
+
+    def _disable_mouse(self):
+        self.mouse_active = False
+        pygame.mouse.set_visible(False)
+
+    def handle_event(self, event):
+        """Handle mouse and keyboard interaction logic."""
+        if event.type == pygame.MOUSEMOTION:
+            # Re-enable mouse on movement
+            rel = event.rel
+            if abs(rel[0]) > 2 or abs(rel[1]) > 2:
+                self.mouse_active = True
+                pygame.mouse.set_visible(True)
+
+        if event.type == pygame.KEYDOWN:
+            # Hide mouse on key press
+            self._disable_mouse()
+
+        if self.mouse_active and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            mouse_pos = pygame.mouse.get_pos()
+            for i in range(len(self.items)):
+                item_y = self.y + (i * self.item_height)
+                item_rect = pygame.Rect(self.x - self.offset_left, item_y, self.width + self.offset_left, self.item_height)
+                if item_rect.collidepoint(mouse_pos):
+                    return self.items[i]
+        return None

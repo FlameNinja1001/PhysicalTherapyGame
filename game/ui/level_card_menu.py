@@ -30,6 +30,9 @@ class LevelCard:
             self.x = animations.lerp(self.start_x, self.target_x, e)
             self.alpha = min(255, self.alpha + 500 * dt)
 
+        # Determine current hit box for hover/click
+        self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
+
     def draw(self, surface, is_selected, pulse_time):
         render_x = self.x
 
@@ -109,8 +112,21 @@ class LevelCardMenu:
         self.selected_idx = 0
         self.pulse_time = 0
         self.entry_timer = 0.0
+        self.mouse_active = True
 
     def update(self, dt):
+        # Handle Mouse Hover
+        if self.mouse_active:
+            mouse_pos = pygame.mouse.get_pos()
+            for i, card in enumerate(self.cards):
+                card_rect = pygame.Rect(card.x, card.y, card.width, card.height)
+                if card_rect.collidepoint(mouse_pos):
+                    if self.selected_idx != i:
+                        self.selected_idx = i
+                        from game.core.audio_manager import get_audio_manager
+                        get_audio_manager().play_sfx('select')
+                    break
+
         self.pulse_time += dt
         self.entry_timer += dt
         for i, card in enumerate(self.cards):
@@ -129,6 +145,34 @@ class LevelCardMenu:
 
     def prev(self):
         self.selected_idx = (self.selected_idx - 1) % len(self.cards)
+        self._disable_mouse()
+
+    def next(self):
+        self.selected_idx = (self.selected_idx + 1) % len(self.cards)
+        self._disable_mouse()
+
+    def _disable_mouse(self):
+        self.mouse_active = False
+        pygame.mouse.set_visible(False)
+
+    def handle_event(self, event):
+        """Handle mouse and keyboard interaction logic."""
+        if event.type == pygame.MOUSEMOTION:
+            rel = event.rel
+            if abs(rel[0]) > 2 or abs(rel[1]) > 2:
+                self.mouse_active = True
+                pygame.mouse.set_visible(True)
+
+        if event.type == pygame.KEYDOWN:
+            self._disable_mouse()
+
+        if self.mouse_active and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            mouse_pos = pygame.mouse.get_pos()
+            for i, card in enumerate(self.cards):
+                card_rect = getattr(card, 'rect', pygame.Rect(0,0,0,0))
+                if card_rect.collidepoint(mouse_pos):
+                    return True
+        return False
 
     def get_selected_group(self):
         return self.cards[self.selected_idx].data
